@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 )
 
 // ErrHelp is returned when --help is requested.
@@ -109,24 +108,8 @@ func ParseArgs(args []string) (*Config, error) {
 	return cfg, nil
 }
 
-// Run parses CLI arguments and prints the resulting configuration.
-// In later tasks, this will start the HTTP server and open a browser.
-func Run(args []string) error {
-	cfg, err := ParseArgs(args)
-	if err != nil {
-		if errors.Is(err, ErrHelp) {
-			printUsage(os.Stderr)
-			return nil
-		}
-		return err
-	}
-
-	fmt.Printf("Config: mode=%s base=%q target=%q port=%d host=%s no-open=%v view-mode=%s\n",
-		cfg.Mode, cfg.Base, cfg.Target, cfg.Port, cfg.Host, cfg.NoOpen, cfg.ViewMode)
-	return nil
-}
-
-func printUsage(w io.Writer) {
+// PrintUsage writes usage information to w.
+func PrintUsage(w io.Writer) {
 	fmt.Fprint(w, usageHeader)
 	var f flags
 	fs := newFlagSet(&f)

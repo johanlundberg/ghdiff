@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -415,6 +416,238 @@ index 1234567..abcdef0 100644
 									{Type: "delete", Content: "\tfmt.Println(x + y)", OldNum: 12},
 									{Type: "add", Content: "\tlog.Println(x + y)", NewNum: 12},
 									{Type: "context", Content: "}", OldNum: 13, NewNum: 13},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "file with spaces in name",
+			input: `diff --git a/my file.txt b/my file.txt
+index 1234567..abcdef0 100644
+--- a/my file.txt
++++ b/my file.txt
+@@ -1,2 +1,2 @@
+ hello
+-world
++space world
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "my file.txt",
+						NewName: "my file.txt",
+						Status:  "modified",
+						Hunks: []Hunk{
+							{
+								OldStart: 1,
+								OldLines: 2,
+								NewStart: 1,
+								NewLines: 2,
+								Header:   "@@ -1,2 +1,2 @@",
+								Lines: []Line{
+									{Type: "context", Content: "hello", OldNum: 1, NewNum: 1},
+									{Type: "delete", Content: "world", OldNum: 2},
+									{Type: "add", Content: "space world", NewNum: 2},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "very long lines",
+			input: "diff --git a/long.txt b/long.txt\nindex 1234567..abcdef0 100644\n--- a/long.txt\n+++ b/long.txt\n@@ -1 +1 @@\n-" + strings.Repeat("a", 1500) + "\n+" + strings.Repeat("b", 1500) + "\n",
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "long.txt",
+						NewName: "long.txt",
+						Status:  "modified",
+						Hunks: []Hunk{
+							{
+								OldStart: 1,
+								OldLines: 1,
+								NewStart: 1,
+								NewLines: 1,
+								Header:   "@@ -1 +1 @@",
+								Lines: []Line{
+									{Type: "delete", Content: strings.Repeat("a", 1500), OldNum: 1},
+									{Type: "add", Content: strings.Repeat("b", 1500), NewNum: 1},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty file to content (0,0 to 0,N)",
+			input: `diff --git a/empty.txt b/empty.txt
+new file mode 100644
+index 0000000..abc1234
+--- /dev/null
++++ b/empty.txt
+@@ -0,0 +1,2 @@
++first line
++second line
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "/dev/null",
+						NewName: "empty.txt",
+						Status:  "added",
+						Hunks: []Hunk{
+							{
+								OldStart: 0,
+								OldLines: 0,
+								NewStart: 1,
+								NewLines: 2,
+								Header:   "@@ -0,0 +1,2 @@",
+								Lines: []Line{
+									{Type: "add", Content: "first line", NewNum: 1},
+									{Type: "add", Content: "second line", NewNum: 2},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "whitespace only changes",
+			input: `diff --git a/spaces.txt b/spaces.txt
+index 1234567..abcdef0 100644
+--- a/spaces.txt
++++ b/spaces.txt
+@@ -1,3 +1,3 @@
+ line1
+-	indented with tab
++    indented with spaces
+ line3
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "spaces.txt",
+						NewName: "spaces.txt",
+						Status:  "modified",
+						Hunks: []Hunk{
+							{
+								OldStart: 1,
+								OldLines: 3,
+								NewStart: 1,
+								NewLines: 3,
+								Header:   "@@ -1,3 +1,3 @@",
+								Lines: []Line{
+									{Type: "context", Content: "line1", OldNum: 1, NewNum: 1},
+									{Type: "delete", Content: "\tindented with tab", OldNum: 2},
+									{Type: "add", Content: "    indented with spaces", NewNum: 2},
+									{Type: "context", Content: "line3", OldNum: 3, NewNum: 3},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "zero context lines - only adds",
+			input: `diff --git a/add.txt b/add.txt
+index 1234567..abcdef0 100644
+--- a/add.txt
++++ b/add.txt
+@@ -3,0 +4,2 @@
++inserted line 1
++inserted line 2
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "add.txt",
+						NewName: "add.txt",
+						Status:  "modified",
+						Hunks: []Hunk{
+							{
+								OldStart: 3,
+								OldLines: 0,
+								NewStart: 4,
+								NewLines: 2,
+								Header:   "@@ -3,0 +4,2 @@",
+								Lines: []Line{
+									{Type: "add", Content: "inserted line 1", NewNum: 4},
+									{Type: "add", Content: "inserted line 2", NewNum: 5},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "zero context lines - only deletes",
+			input: `diff --git a/del.txt b/del.txt
+index 1234567..abcdef0 100644
+--- a/del.txt
++++ b/del.txt
+@@ -2,3 +1,0 @@
+-removed line 1
+-removed line 2
+-removed line 3
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "del.txt",
+						NewName: "del.txt",
+						Status:  "modified",
+						Hunks: []Hunk{
+							{
+								OldStart: 2,
+								OldLines: 3,
+								NewStart: 1,
+								NewLines: 0,
+								Header:   "@@ -2,3 +1,0 @@",
+								Lines: []Line{
+									{Type: "delete", Content: "removed line 1", OldNum: 2},
+									{Type: "delete", Content: "removed line 2", OldNum: 3},
+									{Type: "delete", Content: "removed line 3", OldNum: 4},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "file with spaces in name - new file",
+			input: `diff --git a/path with spaces/my doc.md b/path with spaces/my doc.md
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/path with spaces/my doc.md
+@@ -0,0 +1 @@
++# Hello
+`,
+			expected: &DiffResult{
+				Files: []FileDiff{
+					{
+						OldName: "/dev/null",
+						NewName: "path with spaces/my doc.md",
+						Status:  "added",
+						Hunks: []Hunk{
+							{
+								OldStart: 0,
+								OldLines: 0,
+								NewStart: 1,
+								NewLines: 1,
+								Header:   "@@ -0,0 +1 @@",
+								Lines: []Line{
+									{Type: "add", Content: "# Hello", NewNum: 1},
 								},
 							},
 						},

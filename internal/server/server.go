@@ -56,8 +56,14 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 		base = s.config.Base
 	}
 
+	// Determine which target ref to use
+	target := r.URL.Query().Get("target")
+	if target == "" {
+		target = s.config.Target
+	}
+
 	// Get the diff from git
-	rawDiff, err := s.repo.GetDiff(base, s.config.Target)
+	rawDiff, err := s.repo.GetDiff(base, target)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

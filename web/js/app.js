@@ -11,6 +11,7 @@
 
   // --- DOM References ---
   const commitPicker = document.getElementById("commit-picker");
+  const targetPicker = document.getElementById("target-picker");
   const btnSplit = document.getElementById("btn-split");
   const btnUnified = document.getElementById("btn-unified");
   const fileTreeContent = document.getElementById("file-tree-content");
@@ -18,8 +19,12 @@
 
   // --- API Calls ---
 
-  async function fetchDiff(base) {
-    const url = base ? `/api/diff?base=${encodeURIComponent(base)}` : "/api/diff";
+  async function fetchDiff(base, target) {
+    const params = new URLSearchParams();
+    if (base) params.set("base", base);
+    if (target) params.set("target", target);
+    const qs = params.toString();
+    const url = qs ? `/api/diff?${qs}` : "/api/diff";
     const resp = await fetch(url);
     if (!resp.ok) {
       throw new Error(`Failed to fetch diff: ${resp.status} ${resp.statusText}`);
@@ -411,10 +416,12 @@
     renderDiffContent(currentFiles);
   }
 
-  async function selectCommit(hash) {
+  async function loadDiff() {
     showLoading();
     try {
-      const data = await fetchDiff(hash || undefined);
+      const base = commitPicker.value || undefined;
+      const target = targetPicker.value || undefined;
+      const data = await fetchDiff(base, target);
       currentFiles = data.files || [];
       renderFileTree(currentFiles);
       renderDiffContent(currentFiles);
@@ -462,25 +469,39 @@
   async function populateCommits() {
     try {
       const commits = await fetchCommits();
-      commitPicker.innerHTML = "";
 
-      // Default option (current diff)
-      const defaultOpt = document.createElement("option");
-      defaultOpt.value = "";
-      defaultOpt.textContent = "Working changes";
-      commitPicker.appendChild(defaultOpt);
+      // --- Base picker (commit-picker) ---
+      commitPicker.innerHTML = "";
+      const baseDefault = document.createElement("option");
+      baseDefault.value = "";
+      baseDefault.textContent = "Merge base";
+      commitPicker.appendChild(baseDefault);
+
+      // --- Target picker (target-picker) ---
+      targetPicker.innerHTML = "";
+      const targetDefault = document.createElement("option");
+      targetDefault.value = "";
+      targetDefault.textContent = "Working tree";
+      targetPicker.appendChild(targetDefault);
 
       if (commits && commits.length > 0) {
         for (const c of commits) {
-          const opt = document.createElement("option");
-          opt.value = c.hash;
           const shortHash = c.hash.substring(0, 7);
           const msg =
             c.message.length > 60
               ? c.message.substring(0, 57) + "..."
               : c.message;
-          opt.textContent = `${shortHash} ${msg}`;
-          commitPicker.appendChild(opt);
+          const label = `${shortHash} ${msg}`;
+
+          const baseOpt = document.createElement("option");
+          baseOpt.value = c.hash;
+          baseOpt.textContent = label;
+          commitPicker.appendChild(baseOpt);
+
+          const targetOpt = document.createElement("option");
+          targetOpt.value = c.hash;
+          targetOpt.textContent = label;
+          targetPicker.appendChild(targetOpt);
         }
       }
     } catch (err) {
@@ -489,6 +510,12 @@
       opt.value = "";
       opt.textContent = "Failed to load commits";
       commitPicker.appendChild(opt);
+
+      targetPicker.innerHTML = "";
+      const topt = document.createElement("option");
+      topt.value = "";
+      topt.textContent = "Failed to load commits";
+      targetPicker.appendChild(topt);
     }
   }
 
@@ -497,8 +524,12 @@
   btnSplit.addEventListener("click", () => toggleViewMode("split"));
   btnUnified.addEventListener("click", () => toggleViewMode("unified"));
 
-  commitPicker.addEventListener("change", (e) => {
-    selectCommit(e.target.value);
+  commitPicker.addEventListener("change", () => {
+    loadDiff();
+  });
+
+  targetPicker.addEventListener("change", () => {
+    loadDiff();
   });
 
   // --- Init ---

@@ -10,8 +10,12 @@
 <body>
   <header class="top-bar">
     <div class="top-bar-left">
-      <select id="commit-picker" aria-label="Select base commit">
-        <option value="">Loading commits...</option>
+      <select id="commit-picker" class="ref-picker" aria-label="Select base ref">
+        <option value="">Loading...</option>
+      </select>
+      <span class="ref-separator">..</span>
+      <select id="target-picker" class="ref-picker" aria-label="Select target ref">
+        <option value="">Loading...</option>
       </select>
     </div>
     <div class="top-bar-right">

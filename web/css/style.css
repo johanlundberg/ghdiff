@@ -78,8 +78,8 @@ body {
   gap: 12px;
 }
 
-/* Commit Picker */
-#commit-picker {
+/* Ref Pickers */
+.ref-picker {
   appearance: none;
   background: var(--bg);
   color: var(--text);
@@ -95,14 +95,21 @@ body {
   background-position: right 10px center;
 }
 
-#commit-picker:hover {
+.ref-picker:hover {
   border-color: #58a6ff;
 }
 
-#commit-picker:focus {
+.ref-picker:focus {
   outline: none;
   border-color: #58a6ff;
   box-shadow: 0 0 0 3px rgba(31, 111, 201, 0.3);
+}
+
+.ref-separator {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  user-select: none;
 }
 
 /* View Toggle */

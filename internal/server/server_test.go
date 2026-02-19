@@ -178,6 +178,72 @@ func TestAPIDiffWithBase(t *testing.T) {
 	}
 }
 
+func TestAPIDiffWithTarget(t *testing.T) {
+	dir := initTestRepo(t)
+	cmd := exec.Command("git", "branch", "-M", "main")
+	cmd.Dir = dir
+	cmd.CombinedOutput()
+
+	firstHash := commitFile(t, dir, "file.txt", "line1\n", "first commit")
+	secondHash := commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
+	commitFile(t, dir, "file.txt", "line1\nline2\nline3\n", "third commit")
+
+	// Config has Base=first commit, Target="" (working tree).
+	// We'll use ?target= to override to a specific commit.
+	cfg := &cli.Config{
+		Mode: "commit",
+		Base: firstHash,
+		Host: "localhost",
+		Port: 0,
+	}
+	repo := git.NewRepo(dir)
+	srv := New(cfg, repo, nil, testAssets())
+
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	// Use ?target= to diff from first commit to second commit only
+	resp, err := http.Get(ts.URL + "/api/diff?target=" + secondHash)
+	if err != nil {
+		t.Fatalf("GET /api/diff?target=...: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	var result diff.DiffResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("decode JSON: %v", err)
+	}
+	if len(result.Files) == 0 {
+		t.Fatal("expected at least one file in diff result")
+	}
+
+	// Diffing first..second should show line2 added but NOT line3
+	foundLine2 := false
+	foundLine3 := false
+	for _, f := range result.Files {
+		for _, h := range f.Hunks {
+			for _, l := range h.Lines {
+				if l.Type == "add" && l.Content == "line2" {
+					foundLine2 = true
+				}
+				if l.Type == "add" && l.Content == "line3" {
+					foundLine3 = true
+				}
+			}
+		}
+	}
+	if !foundLine2 {
+		t.Error("expected diff first..second to contain added line 'line2'")
+	}
+	if foundLine3 {
+		t.Error("expected diff first..second to NOT contain added line 'line3'")
+	}
+}
+
 func TestAPIDiffStdinMode(t *testing.T) {
 	stdinDiff := &diff.DiffResult{
 		Files: []diff.FileDiff{

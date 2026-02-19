@@ -209,6 +209,7 @@ func parseHunk(hm []string, lines []string, i *int) (Hunk, error) {
 	newNum := newStart
 	*i++ // advance past @@ line
 
+loop:
 	for *i < len(lines) {
 		line := lines[*i]
 
@@ -259,7 +260,7 @@ func parseHunk(hm []string, lines []string, i *int) (Hunk, error) {
 			oldNum++
 		default:
 			// Unknown prefix, likely end of hunk
-			break
+			break loop
 		}
 
 		*i++

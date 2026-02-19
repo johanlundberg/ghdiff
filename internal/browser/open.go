@@ -8,14 +8,20 @@ import (
 
 // Open opens the given URL in the default browser.
 func Open(url string) error {
+	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "linux":
-		return exec.Command("xdg-open", url).Start()
+		cmd = exec.Command("xdg-open", url)
 	case "darwin":
-		return exec.Command("open", url).Start()
+		cmd = exec.Command("open", url)
 	case "windows":
-		return exec.Command("cmd", "/c", "start", url).Start()
+		cmd = exec.Command("cmd", "/c", "start", "", url)
 	default:
 		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go cmd.Wait() // reap zombie process
+	return nil
 }

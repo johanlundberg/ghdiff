@@ -3,9 +3,7 @@ package server
 import (
 	"encoding/json"
 	"io/fs"
-	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/lundberg/gitdiffview/internal/cli"
 	"github.com/lundberg/gitdiffview/internal/diff"
@@ -37,12 +35,6 @@ func New(config *cli.Config, repo *git.Repo, stdinDiff *diff.DiffResult, assets 
 // Handler returns the http.Handler (useful for testing).
 func (s *Server) Handler() http.Handler {
 	return s.mux
-}
-
-// Start starts the HTTP server on config.Host:config.Port.
-func (s *Server) Start() error {
-	addr := net.JoinHostPort(s.config.Host, strconv.Itoa(s.config.Port))
-	return http.ListenAndServe(addr, s.mux)
 }
 
 func (s *Server) routes() {

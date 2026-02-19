@@ -73,6 +73,11 @@ func ParseArgs(args []string) (*Config, error) {
 		return nil, fmt.Errorf("invalid mode %q: must be split or unified", f.viewMode)
 	}
 
+	// Validate port range
+	if f.port < 0 || f.port > 65535 {
+		return nil, fmt.Errorf("invalid port: %d (must be 0-65535)", f.port)
+	}
+
 	cfg := &Config{
 		Port:     f.port,
 		Host:     f.host,
@@ -87,6 +92,8 @@ func ParseArgs(args []string) (*Config, error) {
 	case 1:
 		if positional[0] == "-" {
 			cfg.Mode = "stdin"
+		} else if positional[0] == "." {
+			cfg.Mode = "working"
 		} else {
 			cfg.Mode = "commit"
 			cfg.Base = positional[0]

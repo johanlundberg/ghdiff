@@ -181,6 +181,30 @@ func TestParseArgs_TwoRefsWithFlags(t *testing.T) {
 	}
 }
 
+func TestParseArgs_WorkingDot(t *testing.T) {
+	cfg, err := ParseArgs([]string{"."})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Mode != "working" {
+		t.Errorf("expected Mode=working, got %q", cfg.Mode)
+	}
+}
+
+func TestParseArgs_InvalidPortNegative(t *testing.T) {
+	_, err := ParseArgs([]string{"--port", "-1"})
+	if err == nil {
+		t.Fatal("expected error for negative port, got nil")
+	}
+}
+
+func TestParseArgs_InvalidPortTooHigh(t *testing.T) {
+	_, err := ParseArgs([]string{"--port", "99999"})
+	if err == nil {
+		t.Fatal("expected error for port > 65535, got nil")
+	}
+}
+
 func TestParseArgs_HelpFlag(t *testing.T) {
 	_, err := ParseArgs([]string{"--help"})
 	if err != ErrHelp {

@@ -83,6 +83,9 @@ func run() error {
 	url := fmt.Sprintf("http://%s", net.JoinHostPort(cfg.Host, strconv.Itoa(actualPort)))
 
 	fmt.Printf("Listening on %s\n", url)
+	if cfg.Host != "localhost" && cfg.Host != "127.0.0.1" {
+		fmt.Fprintln(os.Stderr, "WARNING: gitdiffview is not designed for public access. It exposes repository contents without authentication.")
+	}
 	fmt.Println("Press Ctrl+C to stop")
 
 	if !cfg.NoOpen {

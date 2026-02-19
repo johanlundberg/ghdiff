@@ -10,7 +10,7 @@
   let activeFile = null;
 
   // --- DOM References ---
-  const commitPicker = document.getElementById("commit-picker");
+  const basePicker = document.getElementById("base-picker");
   const targetPicker = document.getElementById("target-picker");
   const btnSplit = document.getElementById("btn-split");
   const btnUnified = document.getElementById("btn-unified");
@@ -419,7 +419,7 @@
   async function loadDiff() {
     showLoading();
     try {
-      const base = commitPicker.value || undefined;
+      const base = basePicker.value || undefined;
       const target = targetPicker.value || undefined;
       const data = await fetchDiff(base, target);
       currentFiles = data.files || [];
@@ -470,12 +470,12 @@
     try {
       const commits = await fetchCommits();
 
-      // --- Base picker (commit-picker) ---
-      commitPicker.innerHTML = "";
+      // --- Base picker ---
+      basePicker.innerHTML = "";
       const baseDefault = document.createElement("option");
       baseDefault.value = "";
       baseDefault.textContent = "Merge base";
-      commitPicker.appendChild(baseDefault);
+      basePicker.appendChild(baseDefault);
 
       // --- Target picker (target-picker) ---
       targetPicker.innerHTML = "";
@@ -496,7 +496,7 @@
           const baseOpt = document.createElement("option");
           baseOpt.value = c.hash;
           baseOpt.textContent = label;
-          commitPicker.appendChild(baseOpt);
+          basePicker.appendChild(baseOpt);
 
           const targetOpt = document.createElement("option");
           targetOpt.value = c.hash;
@@ -505,11 +505,11 @@
         }
       }
     } catch (err) {
-      commitPicker.innerHTML = "";
+      basePicker.innerHTML = "";
       const opt = document.createElement("option");
       opt.value = "";
       opt.textContent = "Failed to load commits";
-      commitPicker.appendChild(opt);
+      basePicker.appendChild(opt);
 
       targetPicker.innerHTML = "";
       const topt = document.createElement("option");
@@ -524,13 +524,9 @@
   btnSplit.addEventListener("click", () => toggleViewMode("split"));
   btnUnified.addEventListener("click", () => toggleViewMode("unified"));
 
-  commitPicker.addEventListener("change", () => {
-    loadDiff();
-  });
-
-  targetPicker.addEventListener("change", () => {
-    loadDiff();
-  });
+  for (const picker of [basePicker, targetPicker]) {
+    picker.addEventListener("change", loadDiff);
+  }
 
   // --- Init ---
 

@@ -178,6 +178,70 @@ func TestAPIDiffWithBase(t *testing.T) {
 	}
 }
 
+func TestAPIDiffWithBaseAndTarget(t *testing.T) {
+	dir := initTestRepo(t)
+	cmd := exec.Command("git", "branch", "-M", "main")
+	cmd.Dir = dir
+	cmd.CombinedOutput()
+
+	firstHash := commitFile(t, dir, "file.txt", "line1\n", "first commit")
+	commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
+	thirdHash := commitFile(t, dir, "file.txt", "line1\nline2\nline3\n", "third commit")
+
+	cfg := &cli.Config{
+		Mode: "commit",
+		Base: "HEAD~1",
+		Host: "localhost",
+		Port: 0,
+	}
+	repo := git.NewRepo(dir)
+	srv := New(cfg, repo, nil, testAssets())
+
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	// Use both ?base= and ?target= to override the config's defaults
+	resp, err := http.Get(ts.URL + "/api/diff?base=" + firstHash + "&target=" + thirdHash)
+	if err != nil {
+		t.Fatalf("GET /api/diff?base=...&target=...: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	var result diff.DiffResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("decode JSON: %v", err)
+	}
+	if len(result.Files) == 0 {
+		t.Fatal("expected at least one file in diff result")
+	}
+
+	// Diffing first..third should show both line2 and line3 added
+	foundLine2 := false
+	foundLine3 := false
+	for _, f := range result.Files {
+		for _, h := range f.Hunks {
+			for _, l := range h.Lines {
+				if l.Type == "add" && l.Content == "line2" {
+					foundLine2 = true
+				}
+				if l.Type == "add" && l.Content == "line3" {
+					foundLine3 = true
+				}
+			}
+		}
+	}
+	if !foundLine2 {
+		t.Error("expected diff first..third to contain added line 'line2'")
+	}
+	if !foundLine3 {
+		t.Error("expected diff first..third to contain added line 'line3'")
+	}
+}
+
 func TestAPIDiffWithTarget(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")

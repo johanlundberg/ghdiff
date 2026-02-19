@@ -57,10 +57,24 @@ func (r *Repo) GetMergeBase(ref1, ref2 string) (string, error) {
 // GetDiff returns unified diff text between two refs.
 // If target is empty, diffs base against the working tree (staged + unstaged).
 func (r *Repo) GetDiff(base, target string) (string, error) {
+	if err := validateRef(base); err != nil {
+		return "", fmt.Errorf("invalid base ref: %w", err)
+	}
 	if target == "" {
 		return r.git("diff", "--no-ext-diff", base)
 	}
+	if err := validateRef(target); err != nil {
+		return "", fmt.Errorf("invalid target ref: %w", err)
+	}
 	return r.git("diff", "--no-ext-diff", base, target)
+}
+
+// validateRef rejects refs that could be interpreted as git flags.
+func validateRef(ref string) error {
+	if strings.HasPrefix(ref, "-") {
+		return fmt.Errorf("ref must not start with '-': %q", ref)
+	}
+	return nil
 }
 
 // GetCommits returns the most recent n commits for the current branch.

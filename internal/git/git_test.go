@@ -269,3 +269,28 @@ func TestGetCommits_All(t *testing.T) {
 		t.Fatalf("expected 2 commits (all available), got %d", len(commits))
 	}
 }
+
+func TestGetDiff_RejectsFlagLikeRef(t *testing.T) {
+	repo := NewRepo(".")
+
+	tests := []struct {
+		name   string
+		base   string
+		target string
+	}{
+		{"base starts with dash", "--output=/tmp/evil", "HEAD"},
+		{"base is flag", "-n", "HEAD"},
+		{"target starts with dash", "HEAD", "--output=/tmp/evil"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := repo.GetDiff(tt.base, tt.target)
+			if err == nil {
+				t.Error("expected error for flag-like ref, got nil")
+			}
+			if !strings.Contains(err.Error(), "must not start with '-'") {
+				t.Errorf("expected error about '-' prefix, got: %v", err)
+			}
+		})
+	}
+}

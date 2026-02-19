@@ -17,6 +17,9 @@
   const fileTreeContent = document.getElementById("file-tree-content");
   const diffContent = document.getElementById("diff-content");
 
+  // --- Auth Token ---
+  const authHeaders = { "X-Auth-Token": window.__TOKEN__ };
+
   // --- API Calls ---
 
   async function fetchDiff(base, target) {
@@ -25,7 +28,7 @@
     if (target) params.set("target", target);
     const qs = params.toString();
     const url = qs ? `/api/diff?${qs}` : "/api/diff";
-    const resp = await fetch(url);
+    const resp = await fetch(url, { headers: authHeaders });
     if (!resp.ok) {
       throw new Error(`Failed to fetch diff: ${resp.status} ${resp.statusText}`);
     }
@@ -33,7 +36,7 @@
   }
 
   async function fetchCommits() {
-    const resp = await fetch("/api/commits");
+    const resp = await fetch("/api/commits", { headers: authHeaders });
     if (!resp.ok) {
       throw new Error(
         `Failed to fetch commits: ${resp.status} ${resp.statusText}`

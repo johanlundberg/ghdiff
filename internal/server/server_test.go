@@ -69,9 +69,19 @@ func commitFile(t *testing.T, dir, name, content, message string) string {
 func testAssets() fstest.MapFS {
 	return fstest.MapFS{
 		"index.html": &fstest.MapFile{
-			Data: []byte("<html><body>Hello diffweb</body></html>"),
+			Data: []byte(`<html><body><script>window.__TOKEN__="{{TOKEN}}";</script>Hello diffweb</body></html>`),
 		},
 	}
+}
+
+// authGet performs an HTTP GET with the X-Auth-Token header set.
+func authGet(url, token string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Auth-Token", token)
+	return http.DefaultClient.Do(req)
 }
 
 func TestAPIDiff(t *testing.T) {
@@ -95,7 +105,7 @@ func TestAPIDiff(t *testing.T) {
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/diff")
+	resp, err := authGet(ts.URL+"/api/diff", srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
@@ -143,7 +153,7 @@ func TestAPIDiffWithBase(t *testing.T) {
 	defer ts.Close()
 
 	// Use ?base= to override the config's default base
-	resp, err := http.Get(ts.URL + "/api/diff?base=" + firstHash)
+	resp, err := authGet(ts.URL+"/api/diff?base="+firstHash, srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
@@ -201,7 +211,7 @@ func TestAPIDiffWithBaseAndTarget(t *testing.T) {
 	defer ts.Close()
 
 	// Use both ?base= and ?target= to override the config's defaults
-	resp, err := http.Get(ts.URL + "/api/diff?base=" + firstHash + "&target=" + thirdHash)
+	resp, err := authGet(ts.URL+"/api/diff?base="+firstHash+"&target="+thirdHash, srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...&target=...: %v", err)
 	}
@@ -267,7 +277,7 @@ func TestAPIDiffWithTarget(t *testing.T) {
 	defer ts.Close()
 
 	// Use ?target= to diff from first commit to second commit only
-	resp, err := http.Get(ts.URL + "/api/diff?target=" + secondHash)
+	resp, err := authGet(ts.URL+"/api/diff?target="+secondHash, srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff?target=...: %v", err)
 	}
@@ -341,7 +351,7 @@ func TestAPIDiffStdinMode(t *testing.T) {
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/diff")
+	resp, err := authGet(ts.URL+"/api/diff", srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
@@ -381,7 +391,7 @@ func TestAPIDiffStdinModeIgnoresBase(t *testing.T) {
 	defer ts.Close()
 
 	// Even with ?base= param, stdin mode should return pre-parsed diff
-	resp, err := http.Get(ts.URL + "/api/diff?base=abc123")
+	resp, err := authGet(ts.URL+"/api/diff?base=abc123", srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=abc123: %v", err)
 	}
@@ -419,7 +429,7 @@ func TestAPICommits(t *testing.T) {
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/commits")
+	resp, err := authGet(ts.URL+"/api/commits", srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
@@ -474,7 +484,7 @@ func TestAPICommitsStdinMode(t *testing.T) {
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/commits")
+	resp, err := authGet(ts.URL+"/api/commits", srv.token)
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
@@ -528,5 +538,61 @@ func TestStaticServing(t *testing.T) {
 
 	if !strings.Contains(string(body), "Hello diffweb") {
 		t.Errorf("expected body to contain 'Hello diffweb', got:\n%s", body)
+	}
+
+	// Verify the token was injected (placeholder replaced with actual token)
+	if !strings.Contains(string(body), srv.token) {
+		t.Errorf("expected body to contain injected token %q, got:\n%s", srv.token, body)
+	}
+	if strings.Contains(string(body), "{{TOKEN}}") {
+		t.Error("expected {{TOKEN}} placeholder to be replaced")
+	}
+}
+
+func TestAPIForbiddenWithoutToken(t *testing.T) {
+	cfg := &cli.Config{
+		Mode: "stdin",
+		Host: "localhost",
+		Port: 0,
+	}
+	stdinDiff := &diff.DiffResult{Files: []diff.FileDiff{}}
+	srv := New(cfg, nil, stdinDiff, testAssets())
+
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	for _, path := range []string{"/api/diff", "/api/commits"} {
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("GET %s: %v", path, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("GET %s without token: expected 403, got %d", path, resp.StatusCode)
+		}
+	}
+}
+
+func TestAPIForbiddenWithWrongToken(t *testing.T) {
+	cfg := &cli.Config{
+		Mode: "stdin",
+		Host: "localhost",
+		Port: 0,
+	}
+	stdinDiff := &diff.DiffResult{Files: []diff.FileDiff{}}
+	srv := New(cfg, nil, stdinDiff, testAssets())
+
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	for _, path := range []string{"/api/diff", "/api/commits"} {
+		resp, err := authGet(ts.URL+path, "wrong-token-value")
+		if err != nil {
+			t.Fatalf("GET %s: %v", path, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("GET %s with wrong token: expected 403, got %d", path, resp.StatusCode)
+		}
 	}
 }

@@ -213,6 +213,39 @@ func startBinaryStdin(t *testing.T, binPath string, diffData string, extraArgs .
 	}
 }
 
+var tokenRe = regexp.MustCompile(`window\.__TOKEN__="([0-9a-f]+)"`)
+
+// extractToken fetches the index page and extracts the auth token from the injected script.
+func extractToken(t *testing.T, baseURL string) string {
+	t.Helper()
+	resp, err := http.Get(baseURL + "/")
+	if err != nil {
+		t.Fatalf("GET /: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+
+	m := tokenRe.FindSubmatch(body)
+	if m == nil {
+		t.Fatalf("could not extract token from index.html:\n%s", body)
+	}
+	return string(m[1])
+}
+
+// authGet performs an HTTP GET with the X-Auth-Token header set.
+func authGet(url, token string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Auth-Token", token)
+	return http.DefaultClient.Do(req)
+}
+
 func TestIntegrationGitMode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -227,8 +260,10 @@ func TestIntegrationGitMode(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
+	token := extractToken(t, baseURL)
+
 	t.Run("api/diff returns valid JSON", func(t *testing.T) {
-		resp, err := http.Get(baseURL + "/api/diff")
+		resp, err := authGet(baseURL+"/api/diff", token)
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
@@ -270,7 +305,7 @@ func TestIntegrationGitMode(t *testing.T) {
 	})
 
 	t.Run("api/commits returns commits", func(t *testing.T) {
-		resp, err := http.Get(baseURL + "/api/commits")
+		resp, err := authGet(baseURL+"/api/commits", token)
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
@@ -316,6 +351,17 @@ func TestIntegrationGitMode(t *testing.T) {
 			t.Errorf("expected HTML content at root, got:\n%.200s", body)
 		}
 	})
+
+	t.Run("api/diff forbidden without token", func(t *testing.T) {
+		resp, err := http.Get(baseURL + "/api/diff")
+		if err != nil {
+			t.Fatalf("GET /api/diff: %v", err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("expected 403 without token, got %d", resp.StatusCode)
+		}
+	})
 }
 
 func TestIntegrationStdinMode(t *testing.T) {
@@ -340,8 +386,10 @@ index 1234567..abcdef0 100644
 	baseURL, cleanup := startBinaryStdin(t, binPath, diffData)
 	defer cleanup()
 
+	token := extractToken(t, baseURL)
+
 	t.Run("api/diff returns stdin diff", func(t *testing.T) {
-		resp, err := http.Get(baseURL + "/api/diff")
+		resp, err := authGet(baseURL+"/api/diff", token)
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
@@ -364,7 +412,7 @@ index 1234567..abcdef0 100644
 	})
 
 	t.Run("api/commits returns empty in stdin mode", func(t *testing.T) {
-		resp, err := http.Get(baseURL + "/api/commits")
+		resp, err := authGet(baseURL+"/api/commits", token)
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
@@ -396,8 +444,10 @@ func TestIntegrationDiffWithBaseQuery(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
+	token := extractToken(t, baseURL)
+
 	// Override base via query param to see all changes from first commit
-	resp, err := http.Get(baseURL + "/api/diff?base=" + firstHash)
+	resp, err := authGet(baseURL+"/api/diff?base="+firstHash, token)
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
@@ -449,7 +499,9 @@ func TestIntegrationSingleCommitMode(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
-	resp, err := http.Get(baseURL + "/api/diff")
+	token := extractToken(t, baseURL)
+
+	resp, err := authGet(baseURL+"/api/diff", token)
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
@@ -528,7 +580,9 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
-	resp, err := http.Get(baseURL + "/api/diff")
+	token := extractToken(t, baseURL)
+
+	resp, err := authGet(baseURL+"/api/diff", token)
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
@@ -574,7 +628,7 @@ func TestIntegrationCSSAsset(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
-	// Verify CSS file is served
+	// Verify CSS file is served (no token required for static assets)
 	resp, err := http.Get(baseURL + "/css/style.css")
 	if err != nil {
 		t.Fatalf("GET /css/style.css: %v", err)
@@ -603,7 +657,7 @@ func TestIntegrationJSAsset(t *testing.T) {
 	baseURL, cleanup := startBinary(t, binPath, dir, "HEAD~1", "HEAD")
 	defer cleanup()
 
-	// Verify JS file is served
+	// Verify JS file is served (no token required for static assets)
 	resp, err := http.Get(baseURL + "/js/app.js")
 	if err != nil {
 		t.Fatalf("GET /js/app.js: %v", err)

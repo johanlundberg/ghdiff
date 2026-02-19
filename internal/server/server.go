@@ -1,9 +1,14 @@
 package server
 
 import (
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"strings"
+	"sync"
 
 	"github.com/lundberg/gitdiffview/internal/cli"
 	"github.com/lundberg/gitdiffview/internal/diff"
@@ -17,16 +22,26 @@ type Server struct {
 	mux       *http.ServeMux
 	stdinDiff *diff.DiffResult
 	assets    fs.FS
+	token     string
+
+	indexOnce sync.Once
+	indexHTML []byte
 }
 
 // New creates a new server. If stdinDiff is non-nil, the server is in stdin mode.
 func New(config *cli.Config, repo *git.Repo, stdinDiff *diff.DiffResult, assets fs.FS) *Server {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand failed: " + err.Error())
+	}
+
 	s := &Server{
 		config:    config,
 		repo:      repo,
 		mux:       http.NewServeMux(),
 		stdinDiff: stdinDiff,
 		assets:    assets,
+		token:     hex.EncodeToString(b),
 	}
 	s.routes()
 	return s
@@ -38,9 +53,45 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) routes() {
-	s.mux.HandleFunc("GET /api/diff", s.handleDiff)
-	s.mux.HandleFunc("GET /api/commits", s.handleCommits)
+	s.mux.HandleFunc("GET /api/diff", s.requireToken(s.handleDiff))
+	s.mux.HandleFunc("GET /api/commits", s.requireToken(s.handleCommits))
+	s.mux.HandleFunc("GET /{$}", s.handleIndex)
 	s.mux.Handle("GET /", http.FileServerFS(s.assets))
+}
+
+// requireToken returns middleware that checks the X-Auth-Token header on API routes.
+func (s *Server) requireToken(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Auth-Token")), []byte(s.token)) != 1 {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// handleIndex serves index.html with the auth token injected.
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	s.indexOnce.Do(func() {
+		raw, err := fs.ReadFile(s.assets, "index.html")
+		if err != nil {
+			// Will serve an error on every request; acceptable since this is fatal.
+			return
+		}
+		s.indexHTML = []byte(strings.Replace(
+			string(raw),
+			"{{TOKEN}}",
+			s.token,
+			1,
+		))
+	})
+	if s.indexHTML == nil {
+		http.Error(w, "index.html not found", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write(s.indexHTML)
 }
 
 func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {

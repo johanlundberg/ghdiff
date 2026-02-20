@@ -11,6 +11,9 @@ import (
 // ErrHelp is returned when --help is requested.
 var ErrHelp = errors.New("help requested")
 
+// ErrVersion is returned when --version is requested.
+var ErrVersion = errors.New("version requested")
+
 // Config holds the parsed CLI configuration.
 type Config struct {
 	Mode     string // "merge-base", "commit", "compare", "working", "stdin"
@@ -42,6 +45,7 @@ type flags struct {
 	host     string
 	noOpen   bool
 	viewMode string
+	version  bool
 }
 
 func newFlagSet(f *flags) *flag.FlagSet {
@@ -50,6 +54,7 @@ func newFlagSet(f *flags) *flag.FlagSet {
 	fs.StringVar(&f.host, "host", "localhost", "HTTP server host")
 	fs.BoolVar(&f.noOpen, "no-open", false, "don't open browser automatically")
 	fs.StringVar(&f.viewMode, "mode", "split", "view mode: split or unified")
+	fs.BoolVar(&f.version, "version", false, "print version and exit")
 	return fs
 }
 
@@ -66,6 +71,10 @@ func ParseArgs(args []string) (*Config, error) {
 			return nil, ErrHelp
 		}
 		return nil, err
+	}
+
+	if f.version {
+		return nil, ErrVersion
 	}
 
 	// Validate view mode

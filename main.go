@@ -21,6 +21,9 @@ import (
 	"github.com/lundberg/ghdiff/web"
 )
 
+// version is set via -ldflags at build time.
+var version = "dev"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -33,6 +36,10 @@ func run() error {
 	if err != nil {
 		if errors.Is(err, cli.ErrHelp) {
 			cli.PrintUsage(os.Stderr)
+			return nil
+		}
+		if errors.Is(err, cli.ErrVersion) {
+			fmt.Println(version)
 			return nil
 		}
 		return err

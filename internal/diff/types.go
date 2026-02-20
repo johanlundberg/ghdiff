@@ -1,7 +1,7 @@
 package diff
 
 // DiffResult contains all file diffs parsed from a unified diff.
-type DiffResult struct {
+type DiffResult struct { //nolint:revive // renaming would break public API
 	Files []FileDiff `json:"files"`
 }
 

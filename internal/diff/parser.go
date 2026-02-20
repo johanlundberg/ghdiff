@@ -1,3 +1,4 @@
+// Package diff parses unified diff output into structured types.
 package diff
 
 import (
@@ -94,11 +95,12 @@ func Parse(input string) (*DiffResult, error) {
 
 				// Determine status from file names if not already set
 				if file.Status == "" {
-					if file.OldName == "/dev/null" {
+					switch {
+					case file.OldName == "/dev/null":
 						file.Status = "added"
-					} else if file.NewName == "/dev/null" {
+					case file.NewName == "/dev/null":
 						file.Status = "deleted"
-					} else {
+					default:
 						file.Status = "modified"
 					}
 				}

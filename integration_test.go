@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -140,7 +139,7 @@ func startBinary(t *testing.T, binPath string, dir string, args ...string) (stri
 	// Cleanup function that kills the process
 	cleanup := func() {
 		cancel()
-		cmd.Wait()
+		_ = cmd.Wait()
 	}
 
 	select {
@@ -182,8 +181,8 @@ func startBinaryStdin(t *testing.T, binPath string, diffData string, extraArgs .
 
 	// Write diff data to stdin and close
 	go func() {
-		io.WriteString(stdin, diffData)
-		stdin.Close()
+		_, _ = io.WriteString(stdin, diffData)
+		_ = stdin.Close()
 	}()
 
 	scanner := bufio.NewScanner(stdout)
@@ -200,7 +199,7 @@ func startBinaryStdin(t *testing.T, binPath string, diffData string, extraArgs .
 
 	cleanup := func() {
 		cancel()
-		cmd.Wait()
+		_ = cmd.Wait()
 	}
 
 	select {
@@ -222,7 +221,7 @@ func extractToken(t *testing.T, baseURL string) string {
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -267,7 +266,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
@@ -309,7 +308,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -335,7 +334,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -357,7 +356,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("expected 403 without token, got %d", resp.StatusCode)
 		}
@@ -393,7 +392,7 @@ index 1234567..abcdef0 100644
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -416,7 +415,7 @@ index 1234567..abcdef0 100644
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		var commits []git.Commit
 		if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
@@ -451,7 +450,7 @@ func TestIntegrationDiffWithBaseQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var result diff.DiffResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -505,7 +504,7 @@ func TestIntegrationSingleCommitMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var result diff.DiffResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -586,7 +585,7 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var result diff.DiffResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -633,7 +632,7 @@ func TestIntegrationCSSAsset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /css/style.css: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 for CSS asset, got %d", resp.StatusCode)
@@ -662,7 +661,7 @@ func TestIntegrationJSAsset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /js/app.js: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status 200 for /js/app.js, got %d", resp.StatusCode)
@@ -676,7 +675,7 @@ func TestIntegration404(t *testing.T) {
 
 	binPath := buildBinary(t)
 
-	diffData := fmt.Sprintf("diff --git a/x.txt b/x.txt\n--- a/x.txt\n+++ b/x.txt\n@@ -1 +1 @@\n-a\n+b\n")
+	diffData := "diff --git a/x.txt b/x.txt\n--- a/x.txt\n+++ b/x.txt\n@@ -1 +1 @@\n-a\n+b\n"
 	baseURL, cleanup := startBinaryStdin(t, binPath, diffData)
 	defer cleanup()
 
@@ -684,7 +683,7 @@ func TestIntegration404(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /nonexistent: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	// FileServer returns 404 for missing files
 	if resp.StatusCode != http.StatusNotFound {

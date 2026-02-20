@@ -1,3 +1,4 @@
+// Package cli handles command-line argument parsing and configuration.
 package cli
 
 import (
@@ -89,11 +90,12 @@ func ParseArgs(args []string) (*Config, error) {
 	case 0:
 		cfg.Mode = "merge-base"
 	case 1:
-		if positional[0] == "-" {
+		switch positional[0] {
+		case "-":
 			cfg.Mode = "stdin"
-		} else if positional[0] == "." {
+		case ".":
 			cfg.Mode = "working"
-		} else {
+		default:
 			cfg.Mode = "commit"
 			cfg.Base = positional[0]
 		}
@@ -110,7 +112,7 @@ func ParseArgs(args []string) (*Config, error) {
 
 // PrintUsage writes usage information to w.
 func PrintUsage(w io.Writer) {
-	fmt.Fprint(w, usageHeader)
+	_, _ = fmt.Fprint(w, usageHeader)
 	var f flags
 	fs := newFlagSet(&f)
 	fs.SetOutput(w)

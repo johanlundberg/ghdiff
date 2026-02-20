@@ -1,0 +1,30 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - revive
+
+formatters:
+  enable:
+    - goimports
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+  revive:
+    rules:
+      - name: blank-imports
+      - name: exported
+      - name: unreachable-code
+      - name: unused-parameter

@@ -1,3 +1,4 @@
+// Package server provides the HTTP server for the diff viewer frontend and API.
 package server
 
 import (
@@ -71,7 +72,7 @@ func (s *Server) requireToken(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // handleIndex serves index.html with the auth token injected.
-func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleIndex(w http.ResponseWriter, _ *http.Request) {
 	s.indexOnce.Do(func() {
 		raw, err := fs.ReadFile(s.assets, "index.html")
 		if err != nil {
@@ -91,7 +92,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Write(s.indexHTML)
+	_, _ = w.Write(s.indexHTML)
 }
 
 func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +130,7 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, result)
 }
 
-func (s *Server) handleCommits(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCommits(w http.ResponseWriter, _ *http.Request) {
 	// In stdin mode, return empty array
 	if s.stdinDiff != nil {
 		writeJSON(w, []git.Commit{})

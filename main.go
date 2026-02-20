@@ -1,3 +1,4 @@
+// gitdiffview displays git diffs in a GitHub-style web UI.
 package main
 
 import (
@@ -104,7 +105,7 @@ func run() error {
 	go func() {
 		<-ctx.Done()
 		fmt.Println("\nShutting down...")
-		httpServer.Close()
+		_ = httpServer.Close()
 	}()
 
 	if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {

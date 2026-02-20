@@ -88,7 +88,7 @@ func TestAPIDiff(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "file.txt", "line1\n", "first commit")
 	commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
@@ -109,7 +109,7 @@ func TestAPIDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -134,7 +134,7 @@ func TestAPIDiffWithBase(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	firstHash := commitFile(t, dir, "file.txt", "line1\n", "first commit")
 	commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
@@ -157,7 +157,7 @@ func TestAPIDiffWithBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -192,7 +192,7 @@ func TestAPIDiffWithBaseAndTarget(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	firstHash := commitFile(t, dir, "file.txt", "line1\n", "first commit")
 	commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
@@ -215,7 +215,7 @@ func TestAPIDiffWithBaseAndTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...&target=...: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -256,7 +256,7 @@ func TestAPIDiffWithTarget(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	firstHash := commitFile(t, dir, "file.txt", "line1\n", "first commit")
 	secondHash := commitFile(t, dir, "file.txt", "line1\nline2\n", "second commit")
@@ -281,7 +281,7 @@ func TestAPIDiffWithTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?target=...: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -355,7 +355,7 @@ func TestAPIDiffStdinMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -395,7 +395,7 @@ func TestAPIDiffStdinModeIgnoresBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=abc123: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var result diff.DiffResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -413,7 +413,7 @@ func TestAPICommits(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "a.txt", "a", "first commit")
 	commitFile(t, dir, "b.txt", "b", "second commit")
@@ -433,7 +433,7 @@ func TestAPICommits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -488,7 +488,7 @@ func TestAPICommitsStdinMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -525,7 +525,7 @@ func TestStaticServing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -566,7 +566,7 @@ func TestAPIForbiddenWithoutToken(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET %s: %v", path, err)
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("GET %s without token: expected 403, got %d", path, resp.StatusCode)
 		}
@@ -590,7 +590,7 @@ func TestAPIForbiddenWithWrongToken(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET %s: %v", path, err)
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("GET %s with wrong token: expected 403, got %d", path, resp.StatusCode)
 		}

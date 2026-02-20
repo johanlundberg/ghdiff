@@ -1,3 +1,4 @@
+// Package git provides read-only access to git repositories via subprocess.
 package git
 
 import (

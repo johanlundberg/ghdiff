@@ -121,7 +121,7 @@ func TestGetMergeBase(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	// Create initial commit on main
 	baseHash := commitFile(t, dir, "README.md", "hello", "initial commit")
@@ -164,7 +164,7 @@ func TestGetDiff_BetweenRefs(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "file.txt", "line1\n", "first commit")
 
@@ -188,7 +188,7 @@ func TestGetDiff_WorkingTree(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "file.txt", "original\n", "initial commit")
 
@@ -215,7 +215,7 @@ func TestGetCommits(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "a.txt", "a", "first commit")
 	commitFile(t, dir, "b.txt", "b", "second commit")
@@ -254,7 +254,7 @@ func TestGetCommits_All(t *testing.T) {
 	dir := initTestRepo(t)
 	cmd := exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = dir
-	cmd.CombinedOutput()
+	_, _ = cmd.CombinedOutput()
 
 	commitFile(t, dir, "a.txt", "a", "first commit")
 	commitFile(t, dir, "b.txt", "b", "second commit")

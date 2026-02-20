@@ -1,3 +1,4 @@
+// Package browser provides cross-platform browser opening.
 package browser
 
 import (
@@ -22,6 +23,6 @@ func Open(url string) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	go cmd.Wait() // reap zombie process
+	go func() { _ = cmd.Wait() }() // reap zombie process
 	return nil
 }

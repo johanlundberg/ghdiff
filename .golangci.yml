@@ -9,22 +9,30 @@ linters:
     - ineffassign
     - gocritic
     - revive
+  settings:
+    errcheck:
+      check-type-assertions: true
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+    revive:
+      rules:
+        - name: blank-imports
+        - name: exported
+        - name: unreachable-code
+        - name: unused-parameter
+  exclusions:
+    rules:
+      - linters: [errcheck]
+        source: '\.Body\.Close\(\)'
+
+issues:
+  max-same-issues: 0
 
 formatters:
   enable:
     - goimports
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-  revive:
-    rules:
-      - name: blank-imports
-      - name: exported
-      - name: unreachable-code
-      - name: unused-parameter

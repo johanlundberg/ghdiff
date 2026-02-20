@@ -17,13 +17,13 @@ var (
 )
 
 // Parse parses a unified diff string into structured data.
-func Parse(input string) (*DiffResult, error) {
+func Parse(input string) (*Result, error) {
 	if input == "" {
-		return &DiffResult{}, nil
+		return &Result{}, nil
 	}
 
 	lines := strings.Split(input, "\n")
-	result := &DiffResult{}
+	result := &Result{}
 	i := 0
 
 	for i < len(lines) {
@@ -161,7 +161,7 @@ func parseFileName(s string) string {
 
 // parseHunk parses a single hunk starting at the @@ header line.
 // It advances i past all lines belonging to this hunk.
-func parseHunk(hm []string, lines []string, i *int) (Hunk, error) {
+func parseHunk(hm, lines []string, i *int) (Hunk, error) {
 	oldStart, err := strconv.Atoi(hm[1])
 	if err != nil {
 		return Hunk{}, fmt.Errorf("invalid old start: %w", err)
@@ -226,7 +226,7 @@ loop:
 			continue
 		}
 
-		if len(line) == 0 {
+		if line == "" {
 			// Empty line in diff output -- could be end of input or a context line
 			// with empty content. If we're in the middle of a hunk, treat as end.
 			*i++

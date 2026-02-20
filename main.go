@@ -39,7 +39,7 @@ func run() error {
 	}
 
 	repo := git.NewRepo(".")
-	var stdinDiff *diff.DiffResult
+	var stdinDiff *diff.Result
 
 	switch cfg.Mode {
 	case "stdin":
@@ -78,8 +78,13 @@ func run() error {
 		return fmt.Errorf("listen %s: %w", addr, err)
 	}
 
-	// Extract the actual port (important when port=0)
-	actualPort := ln.Addr().(*net.TCPAddr).Port
+	// Extract the actual port (important when port=0).
+	// The type assertion is safe because net.Listen("tcp", ...) always returns *net.TCPAddr.
+	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		return fmt.Errorf("unexpected listener address type: %T", ln.Addr())
+	}
+	actualPort := tcpAddr.Port
 	cfg.Port = actualPort
 	url := fmt.Sprintf("http://%s", net.JoinHostPort(cfg.Host, strconv.Itoa(actualPort)))
 

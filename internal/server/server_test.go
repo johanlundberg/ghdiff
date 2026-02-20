@@ -42,7 +42,7 @@ func initTestRepo(t *testing.T) string {
 // commitFile creates/overwrites a file and commits it. Returns the commit hash.
 func commitFile(t *testing.T, dir, name, content, message string) string {
 	t.Helper()
-	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -76,7 +76,7 @@ func testAssets() fstest.MapFS {
 
 // authGet performs an HTTP GET with the X-Auth-Token header set.
 func authGet(url, token string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func TestAPIDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -118,7 +118,7 @@ func TestAPIDiff(t *testing.T) {
 		t.Errorf("expected Content-Type application/json, got %q", ct)
 	}
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -157,13 +157,13 @@ func TestAPIDiffWithBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -215,13 +215,13 @@ func TestAPIDiffWithBaseAndTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...&target=...: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -281,13 +281,13 @@ func TestAPIDiffWithTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?target=...: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestAPIDiffWithTarget(t *testing.T) {
 }
 
 func TestAPIDiffStdinMode(t *testing.T) {
-	stdinDiff := &diff.DiffResult{
+	stdinDiff := &diff.Result{
 		Files: []diff.FileDiff{
 			{
 				OldName: "stdin-file.txt",
@@ -355,13 +355,13 @@ func TestAPIDiffStdinMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -374,7 +374,7 @@ func TestAPIDiffStdinMode(t *testing.T) {
 }
 
 func TestAPIDiffStdinModeIgnoresBase(t *testing.T) {
-	stdinDiff := &diff.DiffResult{
+	stdinDiff := &diff.Result{
 		Files: []diff.FileDiff{
 			{NewName: "stdin.txt", Status: "modified"},
 		},
@@ -395,9 +395,9 @@ func TestAPIDiffStdinModeIgnoresBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=abc123: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode JSON: %v", err)
 	}
@@ -433,7 +433,7 @@ func TestAPICommits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -470,7 +470,7 @@ func TestAPICommits(t *testing.T) {
 }
 
 func TestAPICommitsStdinMode(t *testing.T) {
-	stdinDiff := &diff.DiffResult{
+	stdinDiff := &diff.Result{
 		Files: []diff.FileDiff{},
 	}
 
@@ -488,7 +488,7 @@ func TestAPICommitsStdinMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/commits: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -514,7 +514,7 @@ func TestStaticServing(t *testing.T) {
 		Host: "localhost",
 		Port: 0,
 	}
-	stdinDiff := &diff.DiffResult{Files: []diff.FileDiff{}}
+	stdinDiff := &diff.Result{Files: []diff.FileDiff{}}
 
 	srv := New(cfg, nil, stdinDiff, testAssets())
 
@@ -525,7 +525,7 @@ func TestStaticServing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -555,7 +555,7 @@ func TestAPIForbiddenWithoutToken(t *testing.T) {
 		Host: "localhost",
 		Port: 0,
 	}
-	stdinDiff := &diff.DiffResult{Files: []diff.FileDiff{}}
+	stdinDiff := &diff.Result{Files: []diff.FileDiff{}}
 	srv := New(cfg, nil, stdinDiff, testAssets())
 
 	ts := httptest.NewServer(srv.Handler())
@@ -566,7 +566,7 @@ func TestAPIForbiddenWithoutToken(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET %s: %v", path, err)
 		}
-		resp.Body.Close() //nolint:errcheck
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("GET %s without token: expected 403, got %d", path, resp.StatusCode)
 		}
@@ -579,7 +579,7 @@ func TestAPIForbiddenWithWrongToken(t *testing.T) {
 		Host: "localhost",
 		Port: 0,
 	}
-	stdinDiff := &diff.DiffResult{Files: []diff.FileDiff{}}
+	stdinDiff := &diff.Result{Files: []diff.FileDiff{}}
 	srv := New(cfg, nil, stdinDiff, testAssets())
 
 	ts := httptest.NewServer(srv.Handler())
@@ -590,7 +590,7 @@ func TestAPIForbiddenWithWrongToken(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET %s: %v", path, err)
 		}
-		resp.Body.Close() //nolint:errcheck
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("GET %s with wrong token: expected 403, got %d", path, resp.StatusCode)
 		}

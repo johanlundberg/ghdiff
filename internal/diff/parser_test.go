@@ -9,12 +9,12 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected *DiffResult
+		expected *Result
 	}{
 		{
 			name:  "empty diff",
 			input: "",
-			expected: &DiffResult{
+			expected: &Result{
 				Files: nil,
 			},
 		},
@@ -33,7 +33,7 @@ index 1234567..abcdef0 100644
 +	fmt.Println("goodbye")
  }
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "hello.go",
@@ -73,7 +73,7 @@ index 0000000..1234567
 +line two
 +line three
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "/dev/null",
@@ -108,7 +108,7 @@ index 1234567..0000000
 -goodbye
 -world
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "old.txt",
@@ -138,7 +138,7 @@ similarity index 100%
 rename from old_name.go
 rename to new_name.go
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "old_name.go",
@@ -163,7 +163,7 @@ index 1234567..abcdef0 100644
 -var x = 1
 +var x = 2
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "old_name.go",
@@ -206,7 +206,7 @@ index 0000000..1234567
 @@ -0,0 +1 @@
 +new file content
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "a.txt",
@@ -254,7 +254,7 @@ new file mode 100644
 index 0000000..1234567
 Binary files /dev/null and b/image.png differ
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName:  "/dev/null",
@@ -271,7 +271,7 @@ Binary files /dev/null and b/image.png differ
 index 1234567..abcdef0 100644
 Binary files a/image.png and b/image.png differ
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName:  "image.png",
@@ -298,7 +298,7 @@ index 1234567..abcdef0 100644
  	existing5()
  	existing6()
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "main.go",
@@ -340,7 +340,7 @@ index 1234567..abcdef0 100644
 +world!
 \ No newline at end of file
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "hello.txt",
@@ -383,7 +383,7 @@ index 1234567..abcdef0 100644
 +	log.Println(x + y)
  }
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "main.go",
@@ -434,7 +434,7 @@ index 1234567..abcdef0 100644
 -world
 +space world
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "my file.txt",
@@ -461,7 +461,7 @@ index 1234567..abcdef0 100644
 		{
 			name:  "very long lines",
 			input: "diff --git a/long.txt b/long.txt\nindex 1234567..abcdef0 100644\n--- a/long.txt\n+++ b/long.txt\n@@ -1 +1 @@\n-" + strings.Repeat("a", 1500) + "\n+" + strings.Repeat("b", 1500) + "\n",
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "long.txt",
@@ -495,7 +495,7 @@ index 0000000..abc1234
 +first line
 +second line
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "/dev/null",
@@ -530,7 +530,7 @@ index 1234567..abcdef0 100644
 +    indented with spaces
  line3
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "spaces.txt",
@@ -565,7 +565,7 @@ index 1234567..abcdef0 100644
 +inserted line 1
 +inserted line 2
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "add.txt",
@@ -599,7 +599,7 @@ index 1234567..abcdef0 100644
 -removed line 2
 -removed line 3
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "del.txt",
@@ -633,7 +633,7 @@ index 0000000..1234567
 @@ -0,0 +1 @@
 +# Hello
 `,
-			expected: &DiffResult{
+			expected: &Result{
 				Files: []FileDiff{
 					{
 						OldName: "/dev/null",

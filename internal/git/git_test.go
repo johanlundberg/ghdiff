@@ -34,7 +34,7 @@ func initTestRepo(t *testing.T) string {
 // commitFile creates/overwrites a file and commits it. Returns the commit hash.
 func commitFile(t *testing.T, dir, name, content, message string) string {
 	t.Helper()
-	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestGetDiff_WorkingTree(t *testing.T) {
 	commitFile(t, dir, "file.txt", "original\n", "initial commit")
 
 	// Modify the file without committing (unstaged change)
-	err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("modified\n"), 0644)
+	err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("modified\n"), 0o644)
 	if err != nil {
 		t.Fatalf("write file: %v", err)
 	}

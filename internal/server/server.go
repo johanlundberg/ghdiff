@@ -21,7 +21,7 @@ type Server struct {
 	config    *cli.Config
 	repo      *git.Repo
 	mux       *http.ServeMux
-	stdinDiff *diff.DiffResult
+	stdinDiff *diff.Result
 	assets    fs.FS
 	token     string
 
@@ -30,7 +30,7 @@ type Server struct {
 }
 
 // New creates a new server. If stdinDiff is non-nil, the server is in stdin mode.
-func New(config *cli.Config, repo *git.Repo, stdinDiff *diff.DiffResult, assets fs.FS) *Server {
+func New(config *cli.Config, repo *git.Repo, stdinDiff *diff.Result, assets fs.FS) *Server {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		panic("crypto/rand failed: " + err.Error())

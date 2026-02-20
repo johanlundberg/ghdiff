@@ -47,11 +47,11 @@ func commitFile(t *testing.T, dir, name, content, message string) string {
 
 	// Ensure parent directory exists
 	parent := filepath.Dir(filepath.Join(dir, name))
-	if err := os.MkdirAll(parent, 0755); err != nil {
+	if err := os.MkdirAll(parent, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -98,11 +98,11 @@ func buildBinary(t *testing.T) string {
 	return binPath
 }
 
-var listenRe = regexp.MustCompile(`Listening on http://([^\s]+)`)
+var listenRe = regexp.MustCompile(`Listening on http://(\S+)`)
 
 // startBinary starts the gitdiffview binary and waits for it to be ready.
 // Returns the base URL and a cancel function. The process is killed when cancel is called.
-func startBinary(t *testing.T, binPath string, dir string, args ...string) (string, context.CancelFunc) {
+func startBinary(t *testing.T, binPath, dir string, args ...string) (string, context.CancelFunc) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -153,7 +153,7 @@ func startBinary(t *testing.T, binPath string, dir string, args ...string) (stri
 }
 
 // startBinaryStdin starts the binary in stdin mode, piping diffData to its stdin.
-func startBinaryStdin(t *testing.T, binPath string, diffData string, extraArgs ...string) (string, context.CancelFunc) {
+func startBinaryStdin(t *testing.T, binPath, diffData string, extraArgs ...string) (string, context.CancelFunc) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -221,7 +221,7 @@ func extractToken(t *testing.T, baseURL string) string {
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -237,7 +237,7 @@ func extractToken(t *testing.T, baseURL string) string {
 
 // authGet performs an HTTP GET with the X-Auth-Token header set.
 func authGet(url, token string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
@@ -276,7 +276,7 @@ func TestIntegrationGitMode(t *testing.T) {
 			t.Errorf("expected Content-Type application/json, got %q", ct)
 		}
 
-		var result diff.DiffResult
+		var result diff.Result
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
@@ -308,7 +308,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -334,7 +334,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -356,7 +356,7 @@ func TestIntegrationGitMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		resp.Body.Close() //nolint:errcheck
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("expected 403 without token, got %d", resp.StatusCode)
 		}
@@ -392,13 +392,13 @@ index 1234567..abcdef0 100644
 		if err != nil {
 			t.Fatalf("GET /api/diff: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 
-		var result diff.DiffResult
+		var result diff.Result
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
@@ -415,7 +415,7 @@ index 1234567..abcdef0 100644
 		if err != nil {
 			t.Fatalf("GET /api/commits: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
+		defer resp.Body.Close()
 
 		var commits []git.Commit
 		if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
@@ -450,9 +450,9 @@ func TestIntegrationDiffWithBaseQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff?base=...: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -504,9 +504,9 @@ func TestIntegrationSingleCommitMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -585,9 +585,9 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/diff: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
-	var result diff.DiffResult
+	var result diff.Result
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -632,7 +632,7 @@ func TestIntegrationCSSAsset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /css/style.css: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 for CSS asset, got %d", resp.StatusCode)
@@ -661,7 +661,7 @@ func TestIntegrationJSAsset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /js/app.js: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status 200 for /js/app.js, got %d", resp.StatusCode)
@@ -683,7 +683,7 @@ func TestIntegration404(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /nonexistent: %v", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	// FileServer returns 404 for missing files
 	if resp.StatusCode != http.StatusNotFound {

@@ -1,4 +1,4 @@
-// gitdiffview - Frontend Application
+// ghdiff - Frontend Application
 // Vanilla JS, no build step, no framework.
 
 (function () {

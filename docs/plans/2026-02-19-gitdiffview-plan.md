@@ -1,4 +1,4 @@
-# gitdiffview Implementation Plan
+# ghdiff Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -20,7 +20,7 @@
 **Step 1: Initialize Go module**
 
 ```bash
-go mod init github.com/lundberg/gitdiffview
+go mod init github.com/lundberg/ghdiff
 ```
 
 **Step 2: Create main.go entry point**
@@ -34,7 +34,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lundberg/gitdiffview/internal/cli"
+	"github.com/lundberg/ghdiff/internal/cli"
 )
 
 func main() {
@@ -72,10 +72,10 @@ type Config struct {
 **Step 4: Verify it compiles**
 
 ```bash
-go build -o gitdiffview .
+go build -o ghdiff .
 ```
 
-Expected: binary compiles, running `./gitdiffview --help` shows usage.
+Expected: binary compiles, running `./ghdiff --help` shows usage.
 
 **Step 5: Commit**
 
@@ -415,13 +415,13 @@ In `internal/cli/cli.go` or a new `internal/browser/open.go`:
 **Step 5: Build and test end-to-end**
 
 ```bash
-go build -o gitdiffview .
+go build -o ghdiff .
 ```
 
 Test in an actual git repo:
-- `./gitdiffview` - should open browser with diff view
-- `./gitdiffview --no-open --port 8080` - should print URL without opening
-- `echo "some diff" | ./gitdiffview -` - stdin mode
+- `./ghdiff` - should open browser with diff view
+- `./ghdiff --no-open --port 8080` - should print URL without opening
+- `echo "some diff" | ./ghdiff -` - stdin mode
 
 **Step 6: Commit**
 
@@ -460,7 +460,7 @@ Change CDN links to `/vendor/highlight.min.js` and `/vendor/github-dark.min.css`
 **Step 4: Build and verify**
 
 ```bash
-go build -o gitdiffview .
+go build -o ghdiff .
 ```
 
 Verify: binary works offline (no CDN requests), syntax highlighting works.
@@ -484,7 +484,7 @@ git add -A && git commit -m "feat: vendor highlight.js for offline syntax highli
 
 Create integration tests that:
 - Create a temp git repo with known commits
-- Run gitdiffview as a subprocess with `--no-open`
+- Run ghdiff as a subprocess with `--no-open`
 - Hit the API endpoints and verify JSON responses
 - Verify static assets are served
 - Test stdin mode
@@ -505,8 +505,8 @@ Add parser tests for:
 **Step 4: Final build + verify binary size**
 
 ```bash
-go build -ldflags="-s -w" -o gitdiffview .
-ls -lh gitdiffview
+go build -ldflags="-s -w" -o ghdiff .
+ls -lh ghdiff
 ```
 
 Expected: binary ~10-15 MB.

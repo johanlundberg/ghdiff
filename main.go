@@ -1,4 +1,4 @@
-// gitdiffview displays git diffs in a GitHub-style web UI.
+// ghdiff displays git diffs in a GitHub-style web UI.
 package main
 
 import (
@@ -13,12 +13,12 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/lundberg/gitdiffview/internal/browser"
-	"github.com/lundberg/gitdiffview/internal/cli"
-	"github.com/lundberg/gitdiffview/internal/diff"
-	"github.com/lundberg/gitdiffview/internal/git"
-	"github.com/lundberg/gitdiffview/internal/server"
-	"github.com/lundberg/gitdiffview/web"
+	"github.com/lundberg/ghdiff/internal/browser"
+	"github.com/lundberg/ghdiff/internal/cli"
+	"github.com/lundberg/ghdiff/internal/diff"
+	"github.com/lundberg/ghdiff/internal/git"
+	"github.com/lundberg/ghdiff/internal/server"
+	"github.com/lundberg/ghdiff/web"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func run() error {
 
 	fmt.Printf("Listening on %s\n", url)
 	if cfg.Host != "localhost" && cfg.Host != "127.0.0.1" {
-		fmt.Fprintln(os.Stderr, "WARNING: gitdiffview is not designed for public access. It exposes repository contents without authentication.")
+		fmt.Fprintln(os.Stderr, "WARNING: ghdiff is not designed for public access. It exposes repository contents without authentication.")
 	}
 	fmt.Println("Press Ctrl+C to stop")
 

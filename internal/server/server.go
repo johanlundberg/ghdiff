@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lundberg/gitdiffview/internal/cli"
-	"github.com/lundberg/gitdiffview/internal/diff"
-	"github.com/lundberg/gitdiffview/internal/git"
+	"github.com/lundberg/ghdiff/internal/cli"
+	"github.com/lundberg/ghdiff/internal/diff"
+	"github.com/lundberg/ghdiff/internal/git"
 )
 
 // Server is the HTTP server that serves the frontend and API endpoints.

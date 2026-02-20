@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lundberg/gitdiffview/internal/diff"
-	"github.com/lundberg/gitdiffview/internal/git"
+	"github.com/lundberg/ghdiff/internal/diff"
+	"github.com/lundberg/ghdiff/internal/git"
 )
 
 // initTestRepo creates a temporary git repo with user config and an initial commit.
@@ -75,12 +75,12 @@ func commitFile(t *testing.T, dir, name, content, message string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// buildBinary builds the gitdiffview binary and returns the path.
+// buildBinary builds the ghdiff binary and returns the path.
 // The binary is built once per test run via t.TempDir().
 func buildBinary(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	binPath := filepath.Join(dir, "gitdiffview")
+	binPath := filepath.Join(dir, "ghdiff")
 
 	// Get the module root (where go.mod is)
 	// We need to build from the source directory
@@ -100,7 +100,7 @@ func buildBinary(t *testing.T) string {
 
 var listenRe = regexp.MustCompile(`Listening on http://(\S+)`)
 
-// startBinary starts the gitdiffview binary and waits for it to be ready.
+// startBinary starts the ghdiff binary and waits for it to be ready.
 // Returns the base URL and a cancel function. The process is killed when cancel is called.
 func startBinary(t *testing.T, binPath, dir string, args ...string) (string, context.CancelFunc) {
 	t.Helper()

@@ -22,7 +22,7 @@ type Config struct {
 	ViewMode string // "split" or "unified"
 }
 
-const usageHeader = `Usage: gitdiffview [flags] [ref1 [ref2]]
+const usageHeader = `Usage: ghdiff [flags] [ref1 [ref2]]
 
 Display git diffs in a GitHub-style web UI.
 
@@ -45,7 +45,7 @@ type flags struct {
 }
 
 func newFlagSet(f *flags) *flag.FlagSet {
-	fs := flag.NewFlagSet("gitdiffview", flag.ContinueOnError)
+	fs := flag.NewFlagSet("ghdiff", flag.ContinueOnError)
 	fs.IntVar(&f.port, "port", 0, "HTTP server port (0 = auto)")
 	fs.StringVar(&f.host, "host", "localhost", "HTTP server host")
 	fs.BoolVar(&f.noOpen, "no-open", false, "don't open browser automatically")

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/lundberg/gitdiffview/internal/cli"
-	"github.com/lundberg/gitdiffview/internal/diff"
-	"github.com/lundberg/gitdiffview/internal/git"
+	"github.com/lundberg/ghdiff/internal/cli"
+	"github.com/lundberg/ghdiff/internal/diff"
+	"github.com/lundberg/ghdiff/internal/git"
 )
 
 // initTestRepo creates a temporary git repo with user config and an initial commit.
@@ -69,7 +69,7 @@ func commitFile(t *testing.T, dir, name, content, message string) string {
 func testAssets() fstest.MapFS {
 	return fstest.MapFS{
 		"index.html": &fstest.MapFile{
-			Data: []byte(`<html><body><script>window.__TOKEN__="{{TOKEN}}";</script>Hello diffweb</body></html>`),
+			Data: []byte(`<html><body><script>window.__TOKEN__="{{TOKEN}}";</script>Hello ghdiff</body></html>`),
 		},
 	}
 }
@@ -536,8 +536,8 @@ func TestStaticServing(t *testing.T) {
 		t.Fatalf("read body: %v", err)
 	}
 
-	if !strings.Contains(string(body), "Hello diffweb") {
-		t.Errorf("expected body to contain 'Hello diffweb', got:\n%s", body)
+	if !strings.Contains(string(body), "Hello ghdiff") {
+		t.Errorf("expected body to contain 'Hello ghdiff', got:\n%s", body)
 	}
 
 	// Verify the token was injected (placeholder replaced with actual token)

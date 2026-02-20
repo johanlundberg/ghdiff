@@ -17,8 +17,8 @@ check: lint test
 
 # Build the binary
 build:
-	go build -o gitdiffview .
+	go build -o ghdiff .
 
 # Remove build artifacts
 clean:
-	rm -f gitdiffview
+	rm -f ghdiff

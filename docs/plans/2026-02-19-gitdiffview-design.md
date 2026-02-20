@@ -1,4 +1,4 @@
-# gitdiffview Design
+# ghdiff Design
 
 ## Overview
 
@@ -15,11 +15,11 @@ output, and serves an embedded web page on localhost.
 ## CLI Interface
 
 ```
-gitdiffview                        # diff working tree vs merge-base with main
-gitdiffview <commit>               # diff working tree vs specific commit
-gitdiffview <ref1> <ref2>          # compare two refs
-gitdiffview .                      # uncommitted changes only
-cat patch.diff | gitdiffview -     # stdin mode
+ghdiff                        # diff working tree vs merge-base with main
+ghdiff <commit>               # diff working tree vs specific commit
+ghdiff <ref1> <ref2>          # compare two refs
+ghdiff .                      # uncommitted changes only
+cat patch.diff | ghdiff -     # stdin mode
 ```
 
 Flags: `--port` (default 4966), `--host` (default 127.0.0.1), `--no-open`, `--mode` (split/unified)

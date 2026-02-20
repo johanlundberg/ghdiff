@@ -1,4 +1,4 @@
-.PHONY: test lint fmt check build clean
+.PHONY: test lint fmt check build clean release
 
 # Run all tests
 test:
@@ -22,3 +22,11 @@ build:
 # Remove build artifacts
 clean:
 	rm -f ghdiff
+
+# Tag and push a new release (usage: make release v=1.0.0)
+release:
+ifndef v
+	$(error usage: make release v=1.0.0)
+endif
+	git tag "v$(v)"
+	git push origin "v$(v)"

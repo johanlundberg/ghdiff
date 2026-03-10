@@ -403,12 +403,11 @@ body {
 
 /* === Diff Table === */
 .diff-table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: var(--font-size);
   line-height: var(--line-height);
-  table-layout: fixed;
 }
 
 /* Hunk Header */
@@ -444,7 +443,6 @@ body {
 .diff-table.unified .line-content {
   padding: 0 10px;
   white-space: pre;
-  overflow-x: visible;
   word-break: keep-all;
 }
 
@@ -505,10 +503,8 @@ body {
 }
 
 .diff-table.split .line-content {
-  width: calc(50% - 50px);
   padding: 0 10px;
   white-space: pre;
-  overflow-x: visible;
   word-break: keep-all;
 }
 

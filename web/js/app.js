@@ -173,6 +173,7 @@
       fragment.appendChild(renderFileSection(file));
     }
     diffContent.appendChild(fragment);
+    adjustSplitTableWidths();
   }
 
   function renderFileSection(file) {
@@ -444,6 +445,41 @@
   }
 
   // --- Helpers ---
+
+  function adjustSplitTableWidths() {
+    const tables = diffContent.querySelectorAll(".diff-table.split");
+    for (const table of tables) {
+      // Reset any previous adjustment
+      table.style.minWidth = "";
+
+      // Measure the widest content on each side using a temporary
+      // off-screen element to get the natural (unwrapped) width.
+      const probe = document.createElement("span");
+      probe.style.cssText =
+        "position:absolute;visibility:hidden;white-space:pre;" +
+        "font-family:var(--font-mono);font-size:var(--font-size);padding:0 10px";
+      document.body.appendChild(probe);
+
+      let maxWidth = 0;
+      const cells = table.querySelectorAll(".line-content");
+      for (const cell of cells) {
+        if (cell.classList.contains("empty-cell")) continue;
+        probe.textContent = cell.textContent;
+        if (probe.offsetWidth > maxWidth) {
+          maxWidth = probe.offsetWidth;
+        }
+      }
+      document.body.removeChild(probe);
+
+      // Each side needs: lineNum (50px) + content (maxWidth)
+      // Total: 2 * (50 + maxWidth) + 1px divider
+      const needed = 2 * (50 + maxWidth) + 1;
+      const container = table.closest(".file-body");
+      if (container && needed > container.clientWidth) {
+        table.style.minWidth = needed + "px";
+      }
+    }
+  }
 
   function escapeHtml(str) {
     if (!str) return "";

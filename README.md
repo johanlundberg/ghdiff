@@ -6,6 +6,8 @@ the "Files changed" tab on a GitHub pull request, but for your local repo.
 
 Zero external Go dependencies. Single binary. No build step for the frontend.
 
+![ghdiff screenshot](screenshot.png)
+
 ## Features
 
 - **Split and unified diff views** with syntax highlighting

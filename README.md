@@ -20,13 +20,13 @@ Zero external Go dependencies. Single binary. No build step for the frontend.
 ## Install
 
 ```sh
-go install github.com/lundberg/ghdiff@latest
+go install github.com/johanlundberg/ghdiff@latest
 ```
 
 Or build from source:
 
 ```sh
-git clone https://github.com/lundberg/ghdiff.git
+git clone https://github.com/johanlundberg/ghdiff.git
 cd ghdiff
 make build    # produces ./ghdiff
 ```

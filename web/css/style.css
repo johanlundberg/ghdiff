@@ -594,6 +594,44 @@ body {
   }
 }
 
+/* === Expand Rows === */
+.expand-row td {
+  background: var(--surface);
+  padding: 2px 10px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.expand-row:first-child td {
+  border-top: none;
+}
+
+.expand-row .expand-btn {
+  display: inline-block;
+  padding: 2px 12px;
+  margin: 0 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.expand-row .expand-btn:hover {
+  color: var(--text);
+  background: var(--hover-bg);
+  border-color: var(--text-muted);
+}
+
+.expand-row .expand-btn:active {
+  background: var(--active-bg);
+}
+
 /* === Loading & Empty States === */
 .loading {
   display: flex;

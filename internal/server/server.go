@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -55,6 +56,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/diff", s.requireToken(s.handleDiff))
+	s.mux.HandleFunc("GET /api/expand", s.requireToken(s.handleExpand))
 	s.mux.HandleFunc("GET /api/commits", s.requireToken(s.handleCommits))
 	s.mux.HandleFunc("GET /{$}", s.handleIndex)
 	s.mux.Handle("GET /", http.FileServerFS(s.assets))
@@ -128,6 +130,65 @@ func (s *Server) handleDiff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, result)
+}
+
+// handleExpand returns a diff for a single file with expanded context lines.
+// Query parameters:
+//   - file:     file path (required)
+//   - base:     base ref (optional, defaults to config base)
+//   - target:   target ref (optional, defaults to config target)
+//   - context:  number of context lines; "all" for full file (default 10)
+func (s *Server) handleExpand(w http.ResponseWriter, r *http.Request) {
+	// In stdin mode, expansion is not supported
+	if s.stdinDiff != nil {
+		http.Error(w, "expand not supported in stdin mode", http.StatusBadRequest)
+		return
+	}
+
+	file := r.URL.Query().Get("file")
+	if file == "" {
+		http.Error(w, "missing file parameter", http.StatusBadRequest)
+		return
+	}
+
+	base := r.URL.Query().Get("base")
+	if base == "" {
+		base = s.config.Base
+	}
+	target := r.URL.Query().Get("target")
+	if target == "" {
+		target = s.config.Target
+	}
+
+	contextLines := 10
+	contextStr := r.URL.Query().Get("context")
+	if contextStr == "all" {
+		contextLines = 999999
+	} else if c, err := strconv.Atoi(contextStr); err == nil && c > 0 {
+		contextLines = c
+	}
+
+	rawDiff, err := s.repo.GetFileDiff(base, target, file, contextLines)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	result, err := diff.Parse(rawDiff)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	hunks := []diff.Hunk{}
+	if len(result.Files) > 0 {
+		hunks = result.Files[0].Hunks
+	}
+
+	writeJSON(w, map[string]any{
+		"file":  file,
+		"hunks": hunks,
+	})
 }
 
 func (s *Server) handleCommits(w http.ResponseWriter, _ *http.Request) {

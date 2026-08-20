@@ -70,6 +70,29 @@ func (r *Repo) GetDiff(base, target string) (string, error) {
 	return r.git("diff", "--no-ext-diff", base, target)
 }
 
+// GetFileDiff returns unified diff text for a single file between two refs,
+// with the specified number of context lines. If contextLines is 0 or negative,
+// the default git context (3 lines) is used. Pass a large number (e.g. 999999)
+// to get the full file diff.
+func (r *Repo) GetFileDiff(base, target, file string, contextLines int) (string, error) {
+	if err := validateRef(base); err != nil {
+		return "", fmt.Errorf("invalid base ref: %w", err)
+	}
+	args := []string{"diff", "--no-ext-diff"}
+	if contextLines > 0 {
+		args = append(args, fmt.Sprintf("-U%d", contextLines))
+	}
+	args = append(args, base)
+	if target != "" {
+		if err := validateRef(target); err != nil {
+			return "", fmt.Errorf("invalid target ref: %w", err)
+		}
+		args = append(args, target)
+	}
+	args = append(args, "--", file)
+	return r.git(args...)
+}
+
 // validateRef rejects refs that could be interpreted as git flags.
 func validateRef(ref string) error {
 	if strings.HasPrefix(ref, "-") {

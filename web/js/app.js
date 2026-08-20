@@ -8,6 +8,7 @@
   let currentFiles = [];
   let viewMode = "split"; // "split" or "unified"
   let activeFile = null;
+  var fileContextLevels = {}; // filePath -> current context level (0 = default git context)
 
   // --- DOM References ---
   const basePicker = document.getElementById("base-picker");
@@ -31,6 +32,19 @@
     const resp = await fetch(url, { headers: authHeaders });
     if (!resp.ok) {
       throw new Error(`Failed to fetch diff: ${resp.status} ${resp.statusText}`);
+    }
+    return resp.json();
+  }
+
+  async function fetchExpand(file, context, base, target) {
+    const params = new URLSearchParams();
+    params.set("file", file);
+    params.set("context", context);
+    if (base) params.set("base", base);
+    if (target) params.set("target", target);
+    const resp = await fetch(`/api/expand?${params.toString()}`, { headers: authHeaders });
+    if (!resp.ok) {
+      throw new Error(`Failed to expand: ${resp.status} ${resp.statusText}`);
     }
     return resp.json();
   }
@@ -161,6 +175,92 @@
     }
   }
 
+  // --- Expand Context ---
+
+  // Returns the next context level for a file. Each call doubles the level:
+  // 0 (default) -> 10 -> 20 -> 40 -> 80 -> 160 -> ... up to all (999999).
+  // "all" always returns the full file.
+  function nextContextLevel(filePath, action) {
+    if (action === "expand-all") return "all";
+    var level = fileContextLevels[filePath] || 0;
+    level++;
+    fileContextLevels[filePath] = level;
+    // Double each time: 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120, 10240, ...
+    var ctx = 10 * Math.pow(2, level - 1);
+    if (ctx >= 999999) return "all";
+    return String(Math.round(ctx));
+  }
+
+  async function expandFileContext(filePath, action, evt) {
+    var context;
+    if (action === "reset") {
+      // Reset to default context
+      fileContextLevels[filePath] = 0;
+      context = "0";
+    } else {
+      context = nextContextLevel(filePath, action);
+    }
+    const base = basePicker.value || undefined;
+    const target = targetPicker.value || undefined;
+    try {
+      const data = await fetchExpand(filePath, context, base, target);
+      if (!data.hunks || data.hunks.length === 0) return;
+
+      // Find and update the file in currentFiles
+      const fileObj = currentFiles.find(function (f) {
+        const p = f.status === "deleted" ? f.oldName : f.newName || f.oldName;
+        return p === filePath;
+      });
+      if (fileObj) {
+        fileObj.hunks = data.hunks;
+      }
+
+      // Re-render just this file section in-place
+      const sectionEl = document.getElementById("file-" + cssId(filePath));
+      if (sectionEl && fileObj) {
+        const oldBody = sectionEl.querySelector(".file-body");
+        const newBody = document.createElement("div");
+        newBody.className = "file-body";
+        buildFileBody(fileObj, newBody);
+        if (oldBody) {
+          oldBody.replaceWith(newBody);
+        } else {
+          sectionEl.appendChild(newBody);
+        }
+        adjustSplitTableWidths();
+
+        // Update stats in header
+        const statsEl = sectionEl.querySelector(".change-stats");
+        if (statsEl) {
+          statsEl.innerHTML = buildChangeStats(fileObj);
+        }
+      }
+    } catch (err) {
+      console.error("Expand failed:", err);
+    }
+  }
+
+  function buildChangeStats(file) {
+    var additions = 0;
+    var deletions = 0;
+    if (file.hunks) {
+      for (var h = 0; h < file.hunks.length; h++) {
+        var lines = file.hunks[h].lines;
+        for (var l = 0; l < lines.length; l++) {
+          if (lines[l].type === "add") additions++;
+          if (lines[l].type === "delete") deletions++;
+        }
+      }
+    }
+    var parts = [];
+    if (additions > 0) parts.push('<span class="additions">+' + additions + "</span>");
+    if (deletions > 0) parts.push('<span class="deletions">&minus;' + deletions + "</span>");
+    if (parts.length > 0) {
+      return '<span class="change-stats">' + parts.join(" ") + "</span>";
+    }
+    return "";
+  }
+
   // --- Diff Content ---
 
   function renderDiffContent(files) {
@@ -181,19 +281,7 @@
     section.className = "file-section";
     const path =
       file.status === "deleted" ? file.oldName : file.newName || file.oldName;
-    section.id = `file-${cssId(path)}`;
-
-    // Count additions and deletions
-    let additions = 0;
-    let deletions = 0;
-    if (file.hunks) {
-      for (const hunk of file.hunks) {
-        for (const line of hunk.lines) {
-          if (line.type === "add") additions++;
-          if (line.type === "delete") deletions++;
-        }
-      }
-    }
+    section.id = "file-" + cssId(path);
 
     // File header
     const header = document.createElement("div");
@@ -201,27 +289,18 @@
 
     const displayPath =
       file.status === "renamed"
-        ? `${file.oldName} \u2192 ${file.newName}`
+        ? file.oldName + " \u2192 " + file.newName
         : path;
 
-    let statsHtml = "";
-    if (!file.isBinary) {
-      const parts = [];
-      if (additions > 0) parts.push(`<span class="additions">+${additions}</span>`);
-      if (deletions > 0) parts.push(`<span class="deletions">&minus;${deletions}</span>`);
-      if (parts.length > 0) {
-        statsHtml = `<span class="change-stats">${parts.join(" ")}</span>`;
-      }
-    }
+    var statsHtml = buildChangeStats(file);
 
-    header.innerHTML = `
-      <span class="collapse-arrow">&#9660;</span>
-      <span class="status-badge ${file.status}">${file.status}</span>
-      <span class="file-path">${escapeHtml(displayPath)}</span>
-      ${statsHtml}
-    `;
+    header.innerHTML =
+      '<span class="collapse-arrow">&#9660;</span>' +
+      '<span class="status-badge ' + file.status + '">' + file.status + "</span>" +
+      '<span class="file-path">' + escapeHtml(displayPath) + "</span>" +
+      statsHtml;
 
-    header.addEventListener("click", () => {
+    header.addEventListener("click", function () {
       section.classList.toggle("collapsed");
     });
 
@@ -230,39 +309,85 @@
     // File body
     const body = document.createElement("div");
     body.className = "file-body";
+    buildFileBody(file, body);
+
+    section.appendChild(body);
+    return section;
+  }
+
+  function buildFileBody(file, body) {
+    const path =
+      file.status === "deleted" ? file.oldName : file.newName || file.oldName;
 
     if (file.isBinary) {
       body.innerHTML = '<div class="binary-notice">Binary file not shown</div>';
     } else if (file.hunks && file.hunks.length > 0) {
       const table = document.createElement("table");
-      table.className = `diff-table ${viewMode}`;
+      table.className = "diff-table " + viewMode;
 
       if (viewMode === "split") {
         const colgroup = document.createElement("colgroup");
-        colgroup.innerHTML = `
-          <col style="width: 50px">
-          <col style="width: calc(50% - 50px)">
-          <col style="width: 1px">
-          <col style="width: 50px">
-          <col style="width: calc(50% - 50px)">
-        `;
+        colgroup.innerHTML =
+          '<col style="width: 50px">' +
+          '<col style="width: calc(50% - 50px)">' +
+          '<col style="width: 1px">' +
+          '<col style="width: 50px">' +
+          '<col style="width: calc(50% - 50px)">';
         table.appendChild(colgroup);
       }
 
+      const colspan = viewMode === "split" ? 5 : 3;
       const tbody = document.createElement("tbody");
-      for (const hunk of file.hunks) {
+
+      for (var hi = 0; hi < file.hunks.length; hi++) {
+        var hunk = file.hunks[hi];
+        // Expand-up row above each hunk
+        var expandUpRow = document.createElement("tr");
+        expandUpRow.className = "expand-row expand-up";
+        var expandUpCell = document.createElement("td");
+        expandUpCell.colSpan = colspan;
+        expandUpCell.innerHTML =
+          '<span class="expand-btn" data-action="expand-up" data-file="' + escapeHtml(path) + '">\u25B2 Expand up</span>' +
+          '<span class="expand-btn" data-action="expand-all" data-file="' + escapeHtml(path) + '">\u25A0 Expand all</span>' +
+          '<span class="expand-btn" data-action="reset" data-file="' + escapeHtml(path) + '">\u21BA Reset</span>';
+        expandUpRow.appendChild(expandUpCell);
+        tbody.appendChild(expandUpRow);
+
+        // Hunk content
         if (viewMode === "split") {
           renderHunkSplit(hunk, tbody);
         } else {
           renderHunkUnified(hunk, tbody);
         }
+
+        // Expand-down row below each hunk
+        var expandDownRow = document.createElement("tr");
+        expandDownRow.className = "expand-row expand-down";
+        var expandDownCell = document.createElement("td");
+        expandDownCell.colSpan = colspan;
+        expandDownCell.innerHTML =
+          '<span class="expand-btn" data-action="expand-down" data-file="' + escapeHtml(path) + '">\u25BC Expand down</span>' +
+          '<span class="expand-btn" data-action="expand-all" data-file="' + escapeHtml(path) + '">\u25A0 Expand all</span>' +
+          '<span class="expand-btn" data-action="reset" data-file="' + escapeHtml(path) + '">\u21BA Reset</span>';
+        expandDownRow.appendChild(expandDownCell);
+        tbody.appendChild(expandDownRow);
       }
+
       table.appendChild(tbody);
       body.appendChild(table);
-    }
 
-    section.appendChild(body);
-    return section;
+      // Delegate click events on expand buttons
+      table.addEventListener("click", function (evt) {
+        var btn = evt.target.closest(".expand-btn");
+        if (!btn) return;
+        evt.stopPropagation();
+        var filePath = btn.dataset.file;
+        var action = btn.dataset.action;
+        if (filePath && action) {
+          expandFileContext(filePath, action, evt);
+        }
+      });
+    }
   }
 
   // --- Hunk Rendering: Split View ---
@@ -288,13 +413,12 @@
         // Context: show on both sides
         const tr = document.createElement("tr");
         tr.className = "line-context";
-        tr.innerHTML = `
-          <td class="line-num old-num">${line.oldNum || ""}</td>
-          <td class="line-content old-content">${escapeHtml(line.content)}</td>
-          <td class="split-divider"></td>
-          <td class="line-num new-num">${line.newNum || ""}</td>
-          <td class="line-content new-content">${escapeHtml(line.content)}</td>
-        `;
+        tr.innerHTML =
+          '<td class="line-num old-num">' + (line.oldNum || "") + '</td>' +
+          '<td class="line-content old-content">' + escapeHtml(line.content) + '</td>' +
+          '<td class="split-divider"></td>' +
+          '<td class="line-num new-num">' + (line.newNum || "") + '</td>' +
+          '<td class="line-content new-content">' + escapeHtml(line.content) + '</td>';
         tbody.appendChild(tr);
         i++;
       } else if (line.type === "delete") {
@@ -319,44 +443,40 @@
 
           if (del && add) {
             // Modification: delete on left, add on right
-            tr.innerHTML = `
-              <td class="line-num old-num old-del">${del.oldNum || ""}</td>
-              <td class="line-content old-content old-del">${escapeHtml(del.content)}</td>
-              <td class="split-divider"></td>
-              <td class="line-num new-num new-add">${add.newNum || ""}</td>
-              <td class="line-content new-content new-add">${escapeHtml(add.content)}</td>
-            `;
+            tr.innerHTML =
+              '<td class="line-num old-num old-del">' + (del.oldNum || "") + '</td>' +
+              '<td class="line-content old-content old-del">' + escapeHtml(del.content) + '</td>' +
+              '<td class="split-divider"></td>' +
+              '<td class="line-num new-num new-add">' + (add.newNum || "") + '</td>' +
+              '<td class="line-content new-content new-add">' + escapeHtml(add.content) + '</td>';
           } else if (del) {
             // Delete only
-            tr.innerHTML = `
-              <td class="line-num old-num old-del">${del.oldNum || ""}</td>
-              <td class="line-content old-content old-del">${escapeHtml(del.content)}</td>
-              <td class="split-divider"></td>
-              <td class="line-num new-num empty-cell"></td>
-              <td class="line-content new-content empty-cell"></td>
-            `;
+            tr.innerHTML =
+              '<td class="line-num old-num old-del">' + (del.oldNum || "") + '</td>' +
+              '<td class="line-content old-content old-del">' + escapeHtml(del.content) + '</td>' +
+              '<td class="split-divider"></td>' +
+              '<td class="line-num new-num empty-cell"></td>' +
+              '<td class="line-content new-content empty-cell"></td>';
           } else {
             // Add only
-            tr.innerHTML = `
-              <td class="line-num old-num empty-cell"></td>
-              <td class="line-content old-content empty-cell"></td>
-              <td class="split-divider"></td>
-              <td class="line-num new-num new-add">${add.newNum || ""}</td>
-              <td class="line-content new-content new-add">${escapeHtml(add.content)}</td>
-            `;
+            tr.innerHTML =
+              '<td class="line-num old-num empty-cell"></td>' +
+              '<td class="line-content old-content empty-cell"></td>' +
+              '<td class="split-divider"></td>' +
+              '<td class="line-num new-num new-add">' + (add.newNum || "") + '</td>' +
+              '<td class="line-content new-content new-add">' + escapeHtml(add.content) + '</td>';
           }
           tbody.appendChild(tr);
         }
       } else if (line.type === "add") {
         // Standalone add (not preceded by delete)
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="line-num old-num empty-cell"></td>
-          <td class="line-content old-content empty-cell"></td>
-          <td class="split-divider"></td>
-          <td class="line-num new-num new-add">${line.newNum || ""}</td>
-          <td class="line-content new-content new-add">${escapeHtml(line.content)}</td>
-        `;
+        tr.innerHTML =
+          '<td class="line-num old-num empty-cell"></td>' +
+          '<td class="line-content old-content empty-cell"></td>' +
+          '<td class="split-divider"></td>' +
+          '<td class="line-num new-num new-add">' + (line.newNum || "") + '</td>' +
+          '<td class="line-content new-content new-add">' + escapeHtml(line.content) + '</td>';
         tbody.appendChild(tr);
         i++;
       } else {
@@ -382,25 +502,22 @@
 
       if (line.type === "context") {
         tr.className = "line-context";
-        tr.innerHTML = `
-          <td class="line-num">${line.oldNum || ""}</td>
-          <td class="line-num">${line.newNum || ""}</td>
-          <td class="line-content">${escapeHtml(line.content)}</td>
-        `;
+        tr.innerHTML =
+          '<td class="line-num">' + (line.oldNum || "") + '</td>' +
+          '<td class="line-num">' + (line.newNum || "") + '</td>' +
+          '<td class="line-content">' + escapeHtml(line.content) + '</td>';
       } else if (line.type === "add") {
         tr.className = "line-add";
-        tr.innerHTML = `
-          <td class="line-num"></td>
-          <td class="line-num">${line.newNum || ""}</td>
-          <td class="line-content">${escapeHtml(line.content)}</td>
-        `;
+        tr.innerHTML =
+          '<td class="line-num"></td>' +
+          '<td class="line-num">' + (line.newNum || "") + '</td>' +
+          '<td class="line-content">' + escapeHtml(line.content) + '</td>';
       } else if (line.type === "delete") {
         tr.className = "line-delete";
-        tr.innerHTML = `
-          <td class="line-num">${line.oldNum || ""}</td>
-          <td class="line-num"></td>
-          <td class="line-content">${escapeHtml(line.content)}</td>
-        `;
+        tr.innerHTML =
+          '<td class="line-num">' + (line.oldNum || "") + '</td>' +
+          '<td class="line-num"></td>' +
+          '<td class="line-content">' + escapeHtml(line.content) + '</td>';
       }
 
       tbody.appendChild(tr);
@@ -422,6 +539,8 @@
 
   async function loadDiff() {
     showLoading();
+    // Reset expansion levels on a fresh diff load
+    fileContextLevels = {};
     try {
       const base = basePicker.value || undefined;
       const target = targetPicker.value || undefined;
@@ -430,12 +549,12 @@
       renderFileTree(currentFiles);
       renderDiffContent(currentFiles);
     } catch (err) {
-      showError(`Failed to load diff: ${err.message}`);
+      showError("Failed to load diff: " + err.message);
     }
   }
 
   function scrollToFile(filename) {
-    const id = `file-${cssId(filename)}`;
+    const id = "file-" + cssId(filename);
     const el = document.getElementById(id);
     if (el) {
       // Ensure the section is expanded
@@ -500,7 +619,7 @@
   }
 
   function showError(message) {
-    diffContent.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+    diffContent.innerHTML = '<div class="error-message">' + escapeHtml(message) + "</div>";
   }
 
   // --- Commit Picker ---
@@ -530,7 +649,7 @@
             c.message.length > 60
               ? c.message.substring(0, 57) + "..."
               : c.message;
-          const label = `${shortHash} ${msg}`;
+          const label = shortHash + " " + msg;
 
           const baseOpt = document.createElement("option");
           baseOpt.value = c.hash;
@@ -560,8 +679,8 @@
 
   // --- Event Listeners ---
 
-  btnSplit.addEventListener("click", () => toggleViewMode("split"));
-  btnUnified.addEventListener("click", () => toggleViewMode("unified"));
+  btnSplit.addEventListener("click", function () { toggleViewMode("split"); });
+  btnUnified.addEventListener("click", function () { toggleViewMode("unified"); });
 
   for (const picker of [basePicker, targetPicker]) {
     picker.addEventListener("change", loadDiff);
@@ -573,17 +692,18 @@
     showLoading();
 
     // Fetch commits and diff in parallel
-    const [, diffResult] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       populateCommits(),
       fetchDiff(),
     ]);
+    const diffResult = results[1];
 
     if (diffResult.status === "fulfilled") {
       currentFiles = diffResult.value.files || [];
       renderFileTree(currentFiles);
       renderDiffContent(currentFiles);
     } else {
-      showError(`Failed to load diff: ${diffResult.reason?.message || "Unknown error"}`);
+      showError("Failed to load diff: " + (diffResult.reason?.message || "Unknown error"));
     }
   }
 

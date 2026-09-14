@@ -1,0 +1,43 @@
+#compdef ghdiff
+
+# zsh completion for ghdiff
+
+_ghdiff() {
+  local context state state_descr line
+  typeset -A opt_args
+
+  _arguments -C \
+    '--port[HTTP server port (0 = auto)]:port:(0 8080 9090 3000)' \
+    '--host[HTTP server host]:host:(localhost 127.0.0.1 0.0.0.0)' \
+    '--no-open[do not open browser automatically]' \
+    '--mode[initial view mode]:mode:(split unified)' \
+    '--version[print version and exit]' \
+    '--help[print usage information and exit]' \
+    '1: :->ref_or_mode' \
+    '2: :->ref' \
+    '*:: :->args'
+
+  case $state in
+    ref_or_mode)
+      if [[ $words[1] == -* ]]; then
+        # already handled by _arguments
+        return
+      fi
+      __ghdiff_git_refs
+      ;;
+    ref)
+      __ghdiff_git_refs
+      ;;
+  esac
+}
+
+__ghdiff_git_refs() {
+  local -a refs
+  if refs=($(git for-each-ref --format='%(refname:short)' refs/heads/ refs/tags/ 2>/dev/null)); then
+    _describe 'git ref' refs
+  fi
+  # Always offer HEAD as a common ref
+  _alternative 'refs:common ref:((HEAD\:"current commit" .\:"working directory" -\:"stdin"))'
+}
+
+_ghdiff "$@"

@@ -90,6 +90,22 @@ live results. In stdin mode, the diff is parsed once at startup.
 The HTML, CSS, and JavaScript are embedded into the Go binary at compile time
 via `//go:embed`, so the final artifact is a single self-contained executable.
 
+### Man page
+
+A man page is available after installation:
+
+```sh
+man ghdiff
+```
+
+### Shell completions
+
+Completions for Bash, Zsh, and Fish are bundled in `completions/`.
+
+- **Bash**: source `completions/ghdiff.bash` or copy to `/usr/share/bash-completion/completions/ghdiff`
+- **Zsh**: copy `completions/_ghdiff` to a directory in `$fpath`
+- **Fish**: copy `completions/ghdiff.fish` to `~/.config/fish/completions/`
+
 ## Development
 
 ```sh
@@ -98,6 +114,7 @@ make test     # go test ./...
 make lint     # golangci-lint run ./...
 make fmt      # goimports via golangci-lint
 make build    # go build -o ghdiff .
+make install  # install binary, man page, and completions (PREFIX=/usr/local)
 ```
 
 Run a single test:

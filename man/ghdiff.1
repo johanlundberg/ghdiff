@@ -1,0 +1,84 @@
+.TH GHDIFF 1 "2026-08-20" "v1.0.2" "User Commands"
+.SH NAME
+ghdiff \- display git diffs in a GitHub-style web UI
+.SH SYNOPSIS
+.B ghdiff
+[OPTIONS] [\fIref1\fR [\fIref2\fR]]
+.SH DESCRIPTION
+\fBghdiff\fR starts a local HTTP server that serves a dark-themed, interactive
+diff viewer reminiscent of the "Files changed" tab on a GitHub pull request.
+It opens your browser automatically (use \fB\-\-no-open\fR to disable).
+.P
+The frontend is a single-page application embedded in the binary. It fetches
+diff data from a JSON API and renders split or unified views with syntax
+highlighting, a file tree sidebar, and commit picker dropdowns.
+.P
+In git mode, \fBghdiff\fR shells out to \fBgit diff\fR on each request, so
+changing refs via the UI shows live results. In stdin mode, the diff is parsed
+once at startup.
+.SH OPTIONS
+.TP
+.B \-\-port \fIPORT\fR
+HTTP server port. Use \fB0\fR (default) to auto-select a free port.
+.TP
+.B \-\-host \fIHOST\fR
+HTTP server host (default: \fBlocalhost\fR).
+WARNING: Binding to non-localhost addresses exposes repository contents.
+.TP
+.B \-\-no-open
+Do not open the browser automatically on startup.
+.TP
+.B \-\-mode \fIMODE\fR
+Initial view mode: \fBsplit\fR (default) or \fBunified\fR.
+.TP
+.B \-\-version
+Print the version and exit.
+.TP
+.B \-\-help
+Print usage information and exit.
+.SH MODES
+The mode is determined by the positional arguments:
+.TP
+.B (none)
+\fImerge-base\fR mode: diff the working tree against the merge-base of HEAD
+with the repository's main/master branch.
+.TP
+.B \fB.\fR
+\fIworking\fR mode: show uncommitted changes (staged and unstaged) against HEAD.
+.TP
+.B \fIcommit\fR
+\fIcommit\fR mode: diff the working tree against a specific commit.
+.TP
+.B \fIref1\fR \fIref2\fR
+\fIcompare\fR mode: diff between two arbitrary refs (commits, branches, tags).
+.TP
+.B \fB\-\fR
+\fIstdin\fR mode: read a unified diff from standard input.
+.SH EXAMPLES
+.TP
+Review current branch against main
+ghdiff
+.TP
+View uncommitted changes
+ghdiff .
+.TP
+Inspect a single commit
+ghdiff HEAD~1
+.TP
+Compare two branches
+ghdiff main feature-branch
+ghdiff v1.0.0 v2.0.0
+.TP
+Pipe any unified diff
+git diff HEAD~3 | ghdiff \-
+cat changes.patch | ghdiff \-
+.SH FILES
+.BR ~/.gitconfig " (indirectly)"
+Used by git for repository configuration.
+.SH BUGS
+Report bugs at https://github.com/johanlundberg/ghdiff/issues
+.SH AUTHOR
+Johan Lundberg <lundberg@sunet.se>
+.SH SEE ALSO
+.BR git (1),
+.BR git-diff (1)

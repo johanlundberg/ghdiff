@@ -64,6 +64,7 @@ jobs:
             echo "Building ${name}..."
             GOOS="$os" GOARCH="$arch" go build -ldflags "$ldflags" -o "dist/${name}/ghdiff${ext}" .
             cp README.md "dist/${name}/"
+            cp -r man completions "dist/${name}/"
 
             # tar.gz for unix, zip for windows
             if [ "$os" = "windows" ]; then
@@ -71,6 +72,9 @@ jobs:
             else
               tar -czf "dist/${name}.tar.gz" -C dist "${name}"
             fi
+
+            # Clean up extracted dirs for next platform (keep archives)
+            rm -rf "dist/${name}"
           done
 
       - name: Generate checksums

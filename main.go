@@ -13,12 +13,12 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/lundberg/ghdiff/internal/browser"
-	"github.com/lundberg/ghdiff/internal/cli"
-	"github.com/lundberg/ghdiff/internal/diff"
-	"github.com/lundberg/ghdiff/internal/git"
-	"github.com/lundberg/ghdiff/internal/server"
-	"github.com/lundberg/ghdiff/web"
+	"github.com/johanlundberg/ghdiff/internal/browser"
+	"github.com/johanlundberg/ghdiff/internal/cli"
+	"github.com/johanlundberg/ghdiff/internal/diff"
+	"github.com/johanlundberg/ghdiff/internal/git"
+	"github.com/johanlundberg/ghdiff/internal/server"
+	"github.com/johanlundberg/ghdiff/web"
 )
 
 // version is set via -ldflags at build time.

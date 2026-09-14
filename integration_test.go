@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lundberg/ghdiff/internal/diff"
-	"github.com/lundberg/ghdiff/internal/git"
+	"github.com/johanlundberg/ghdiff/internal/diff"
+	"github.com/johanlundberg/ghdiff/internal/git"
 )
 
 // initTestRepo creates a temporary git repo with user config and an initial commit.

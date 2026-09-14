@@ -1,3 +1,3 @@
-module github.com/lundberg/ghdiff
+module github.com/johanlundberg/ghdiff
 
 go 1.24

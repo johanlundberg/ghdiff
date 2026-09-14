@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lundberg/ghdiff/internal/cli"
-	"github.com/lundberg/ghdiff/internal/diff"
-	"github.com/lundberg/ghdiff/internal/git"
+	"github.com/johanlundberg/ghdiff/internal/cli"
+	"github.com/johanlundberg/ghdiff/internal/diff"
+	"github.com/johanlundberg/ghdiff/internal/git"
 )
 
 // Server is the HTTP server that serves the frontend and API endpoints.

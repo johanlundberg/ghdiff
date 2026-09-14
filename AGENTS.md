@@ -70,8 +70,8 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/lundberg/ghdiff/internal/diff"
-    "github.com/lundberg/ghdiff/internal/server"
+    "github.com/johanlundberg/ghdiff/internal/diff"
+    "github.com/johanlundberg/ghdiff/internal/server"
 )
 ```
 

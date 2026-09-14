@@ -42,4 +42,4 @@ ifndef v
 	$(error usage: make release v=1.0.0)
 endif
 	git tag "v$(v)"
-	git push origin "v$(v)"
+	git push origin main --tags

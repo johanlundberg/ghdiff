@@ -140,3 +140,9 @@ internal/browser/    Cross-platform browser opener
 web/                 Embedded frontend (HTML, CSS, JS)
 web/vendor/          Vendored highlight.js
 ```
+
+## Responsible AI disclosure
+
+This project and its Homebrew packaging work were developed with assistance
+from Pi, an AI coding agent. The generated code and documentation were
+reviewed by the project maintainer before inclusion.

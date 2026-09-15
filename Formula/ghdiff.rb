@@ -19,6 +19,6 @@ class Ghdiff < Formula
 
   test do
     assert_match version.to_s, shell_output("#{bin}/ghdiff --version")
-    assert_match "Usage:", shell_output("#{bin}/ghdiff --help")
+    assert_match "Usage:", shell_output("#{bin}/ghdiff --help 2>&1")
   end
 end
